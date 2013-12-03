@@ -27,6 +27,7 @@
 #include "Switches.hxx"
 #include "MD5.hxx"
 #include "SoundSDL.hxx"
+#include "Paddles.hxx"
 
 struct					Stella
 {
@@ -207,6 +208,10 @@ bool retro_load_game(const struct retro_game_info *info)
     PropertiesSet propslist(0);
     Properties gameProperties;
     propslist.getMD5(cartMD5, gameProperties);
+    
+    //Input - Set paddles for games that require them (Range: 1-10)
+    Paddles::setDigitalSensitivity(5);
+    Paddles::setMouseSensitivity(5);
     
     //Load the cart
     string cartType = gameProperties.get(Cartridge_Type);
