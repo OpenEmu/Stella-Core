@@ -23,7 +23,7 @@
 	<key>OEGameCoreClass</key>
 	<string>StellaGameCore</string>
 	<key>OEGameCorePlayerCount</key>
-	<string>1</string>
+	<string>2</string>
 	<key>OEProjectURL</key>
 	<string>http://sourceforge.net/projects/stella/</string>
 	<key>OESystemIdentifiers</key>
