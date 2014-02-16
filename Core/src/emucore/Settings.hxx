@@ -98,12 +98,12 @@ class Settings
     /**
       This method will be called to load the current settings from an rc file.
     */
-    //virtual void loadConfig();
+    virtual void loadConfig();
 
     /**
       This method will be called to save the current settings to an rc file.
     */
-    //virtual void saveConfig();
+    virtual void saveConfig();
 
   private:
     // Copy constructor isn't supported by this class so make it private

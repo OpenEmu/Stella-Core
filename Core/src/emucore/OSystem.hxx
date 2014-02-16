@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2014 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: OSystem.hxx 2359 2012-01-17 22:20:20Z stephena $
+// $Id: OSystem.hxx 2838 2014-01-17 23:34:03Z stephena $
 //============================================================================
 
 #ifndef OSYSTEM_HXX
@@ -40,7 +40,10 @@ namespace GUI {
 }
 
 #include "Array.hxx"
+#include "FSNode.hxx"
 #include "FrameBuffer.hxx"
+#include "PNGLibrary.hxx"
+#include "ZipHandler.hxx"
 #include "bspf.hxx"
 
 struct Resolution {
@@ -50,13 +53,21 @@ struct Resolution {
 };
 typedef Common::Array<Resolution> ResolutionList;
 
+struct TimingInfo {
+  uInt64 start;
+  uInt64 current;
+  uInt64 virt;
+  uInt64 totalTime;
+  uInt64 totalFrames;
+};
+
 /**
   This class provides an interface for accessing operating system specific
   functions.  It also comprises an overall parent object, to which all the
   other objects belong.
 
   @author  Stephen Anthony
-  @version $Id: OSystem.hxx 2359 2012-01-17 22:20:20Z stephena $
+  @version $Id: OSystem.hxx 2838 2014-01-17 23:34:03Z stephena $
 */
 class OSystem
 {
@@ -141,28 +152,60 @@ class OSystem
 
       @return The settings menu object
     */
-    //Menu& menu() const { return *myMenu; }
+    Menu& menu() const { return *myMenu; }
 
     /**
       Get the command menu of the system.
 
       @return The command menu object
     */
-    //CommandMenu& commandMenu() const { return *myCommandMenu; }
+    CommandMenu& commandMenu() const { return *myCommandMenu; }
 
     /**
       Get the ROM launcher of the system.
 
       @return The launcher object
     */
-    //Launcher& launcher() const { return *myLauncher; }
+    Launcher& launcher() const { return *myLauncher; }
 
     /**
       Get the state manager of the system.
 
       @return The statemanager object
     */
-    //StateManager& state() const { return *myStateManager; }
+    StateManager& state() const { return *myStateManager; }
+
+    /**
+      Get the PNG handler of the system.
+
+      @return The PNGlib object
+    */
+    PNGLibrary& png() const { return *myPNGLib; }
+
+    /**
+      Get the ZIP handler of the system.
+
+      @return The ZIP object, using the given file
+    */
+    static ZipHandler& zip(const string& file)
+    {
+      myZipHandler->open(file);
+      return *myZipHandler;
+    }
+
+    /**
+      This method should be called to load the current settings from an rc file.
+      It first loads the settings from the config file, then informs subsystems
+      about the new settings.
+    */
+    void loadConfig();
+
+    /**
+      This method should be called to save the current settings to an rc file.
+      It first asks each subsystem to update its settings, then it saves all
+      settings to the config file.
+    */
+    void saveConfig();
 
 #ifdef DEBUGGER_SUPPORT
     /**
@@ -192,35 +235,28 @@ class OSystem
 
       @return The font reference
     */
-    //const GUI::Font& font() const { return *myFont; }
+    const GUI::Font& font() const { return *myFont; }
 
     /**
       Get the info font object of the system
 
       @return The font reference
     */
-    //const GUI::Font& infoFont() const { return *myInfoFont; }
+    const GUI::Font& infoFont() const { return *myInfoFont; }
 
     /**
       Get the small font object of the system
 
       @return The font reference
     */
-    //const GUI::Font& smallFont() const { return *mySmallFont; }
+    const GUI::Font& smallFont() const { return *mySmallFont; }
 
     /**
       Get the launcher font object of the system
 
       @return The font reference
     */
-    //const GUI::Font& launcherFont() const { return *myLauncherFont; }
-
-    /**
-      Get the console font object of the system
-
-      @return The console font reference
-    */
-    //const GUI::Font& consoleFont() const { return *myConsoleFont; }
+    const GUI::Font& launcherFont() const { return *myLauncherFont; }
 
     /**
       Set the framerate for the video system.  It's placed in this class since
@@ -245,60 +281,62 @@ class OSystem
 
       @return  The video framerate currently in use
     */
-    //float frameRate() const { return myDisplayFrameRate; }
+    float frameRate() const { return myDisplayFrameRate; }
 
     /**
       Get the maximum dimensions of a window for the video hardware.
     */
-    //uInt32 desktopWidth() const  { return myDesktopWidth; }
-    uInt32 desktopHeight() const { return 512; }
+    uInt32 desktopWidth() const  { return myDesktopWidth; }
+    uInt32 desktopHeight() const { return myDesktopHeight; }
 
     /**
       Get the supported fullscreen resolutions for the video hardware.
 
       @return  An array of supported resolutions
     */
-    //const ResolutionList& supportedResolutions() const { return myResolutions; }
+    const ResolutionList& supportedResolutions() const { return myResolutions; }
 
     /**
       Return the default full/complete directory name for storing data.
     */
-    //const string& baseDir() const { return myBaseDir; }
+    const string& baseDir() const { return myBaseDir; }
 
     /**
       Return the full/complete directory name for storing state files.
     */
-    const string& stateDir() const { static string dir("."); return dir; }
+    const string& stateDir() const { return myStateDir; }
 
     /**
-      Return the full/complete directory name for storing PNG snapshots.
+      Return the full/complete directory name for saving and loading
+      PNG snapshots.
     */
-    //const string& snapshotDir() const { return mySnapshotDir; }
+    const string& snapshotSaveDir() const { return mySnapshotSaveDir; }
+    const string& snapshotLoadDir() const { return mySnapshotLoadDir; }
 
     /**
-     Return the full/complete directory name for storing nvram
-     (flash/EEPROM) files.
-     */
+      Return the full/complete directory name for storing nvram
+      (flash/EEPROM) files.
+    */
     const string& nvramDir() const { return myNVRamDir; }
 
     /**
       Return the full/complete directory name for storing Distella cfg files.
     */
-    //const string& cfgDir() const { return myCfgDir; }
+    const string& cfgDir() const { return myCfgDir; }
 
     /**
       This method should be called to get the full path of the cheat file.
 
       @return String representing the full path of the cheat filename.
     */
-    //const string& cheatFile() const { return myCheatFile; }
+    const string& cheatFile() const { return myCheatFile; }
 
     /**
       This method should be called to get the full path of the config file.
 
       @return String representing the full path of the config filename.
     */
-    //const string& configFile() const { return myConfigFile; }
+    const string& configFile() const { return myConfigFile; }
 
     /**
       This method should be called to get the full path of the
@@ -314,32 +352,42 @@ class OSystem
 
       @return String representing the full path of the properties filename.
     */
-    //const string& propertiesFile() const { return myPropertiesFile; }
+    const string& propertiesFile() const { return myPropertiesFile; }
 
     /**
       This method should be called to get the full path of the currently
       loaded ROM.
 
-      @return String representing the full path of the ROM file.
+      @return FSNode object representing the ROM file.
     */
-    //const string& romFile() const { return myRomFile; }
+    const FilesystemNode& romFile() const { return myRomFile; }
 
     /**
       Creates a new game console from the specified romfile, and correctly
       initializes the system state to start emulation of the Console.
 
-      @param romfile  The full pathname of the ROM to use
-      @param md5      The MD5sum of the ROM
+      @param rom     The FSNode of the ROM to use (contains path, etc)
+      @param md5     The MD5sum of the ROM
+      @param newrom  Whether this is a new ROM, or a reload of current one
 
-      @return  True on successful creation, otherwise false
+      @return  String indicating any error message (EmptyString for no errors)
     */
-    bool createConsole(const string& romfile = "", const string& md5 = "");
+    string createConsole(const FilesystemNode& rom, const string& md5 = "",
+                         bool newrom = true);
 
     /**
       Deletes the currently defined console, if it exists.
       Also prints some statistics (fps, total frames, etc).
     */
     void deleteConsole();
+
+    /**
+      Reloads the current console (essentially deletes and re-creates it).
+      This can be thought of as a real console off/on toggle.
+
+      @return  True on successful creation, otherwise false
+    */
+    bool reloadConsole();
 
     /**
       Creates a new ROM launcher, to select a new ROM to emulate.
@@ -352,59 +400,63 @@ class OSystem
     bool createLauncher(const string& startdir = "");
 
     /**
+      Answers whether the ROM launcher was actually successfully used
+      at some point since the app started.
+
+      @return  True on success, otherwise false
+    */
+    bool launcherUsed() const { return myLauncherUsed; }
+
+    /**
       Gets all possible info about the ROM by creating a temporary
       Console object and querying it.
 
-      @param romfile  The full pathname of the ROM to use
+      @param romfile  The file node of the ROM to use
       @return  Some information about this ROM
     */
-    string getROMInfo(const string& romfile);
+    string getROMInfo(const FilesystemNode& romfile);
 
     /**
       The features which are conditionally compiled into Stella.
 
       @return  The supported features
     */
-    //const string& features() const { return myFeatures; }
+    const string& features() const { return myFeatures; }
 
     /**
       The build information for Stella (SDL version, architecture, etc).
 
       @return  The build info
     */
-    //const string& buildInfo() const { return myBuildInfo; }
-
-    /**
-      Calculate the MD5sum of the given file.
-
-      @param filename  Filename of potential ROM file
-    */
-    string MD5FromFile(const string& filename);
+    const string& buildInfo() const { return myBuildInfo; }
 
     /**
       Issue a quit event to the OSystem.
     */
-    //void quit() { myQuitLoop = true; }
+    void quit() { myQuitLoop = true; }
 
     /**
-      Append a message to the internal log.
+      Append a message to the internal log
+      (a newline is automatically added).
 
       @param message  The message to be appended
       @param level    If 0, always output the message, only append when
                       level is less than or equal to that in 'loglevel'
     */
-	#ifdef NDEBUG
-    void logMessage(const string& message, uInt8 level) { }
-	#else
     void logMessage(const string& message, uInt8 level);
-	#endif
 
     /**
       Get the system messages logged up to this point.
 
       @return The list of log messages
     */
-    //const string& logMessages() const { return myLogMessages; }
+    const string& logMessages() const { return myLogMessages; }
+
+    /**
+      Return timing information (start time of console, current
+      number of frames rendered, etc.
+    */
+    const TimingInfo& timingInfo() const { return myTimingInfo; }
 
   public:
     //////////////////////////////////////////////////////////////////////
@@ -443,21 +495,22 @@ class OSystem
     /**
       This method creates events from platform-specific hardware.
     */
-    virtual void pollEvent();
+    virtual void pollEvent() { }
 
     /**
       Informs the OSystem of a change in EventHandler state.
     */
-    virtual void stateChanged(EventHandler::State state);
+    virtual void stateChanged(EventHandler::State state) { }
 
     /**
-      Returns the default path for the snapshot directory.
+      Returns the default save and load paths for the snapshot directory.
       Since this varies greatly among different systems and is the one
       directory that most end-users care about (vs. config file stuff
       that usually isn't user-modifiable), we create a special method
       for it.
     */
-    virtual string defaultSnapDir() { return "~"; }
+    virtual string defaultSnapSaveDir() { return "~" BSPF_PATH_SEPARATOR; }
+    virtual string defaultSnapLoadDir() { return "~" BSPF_PATH_SEPARATOR; }
 
     /**
       Set the position of the application window, generally using
@@ -466,9 +519,6 @@ class OSystem
       for fullscreen mode.
     */
     virtual void setAppWindowPos(int x, int y, int w, int h) { };
-
-    // Pointer to the (currently defined) Console object
-    Console* myConsole;
 
   protected:
     /**
@@ -503,17 +553,21 @@ class OSystem
     // Pointer to the PropertiesSet object
     PropertiesSet* myPropSet;
 
+    // Pointer to the (currently defined) Console object
+    Console* myConsole;
+
     // Pointer to the serial port object
     SerialPort* mySerialPort;
 
     // Pointer to the Menu object
-    /*Menu* myMenu;
+    Menu* myMenu;
 
     // Pointer to the CommandMenu object
     CommandMenu* myCommandMenu;
 
     // Pointer to the Launcher object
     Launcher* myLauncher;
+    bool myLauncherUsed;
 
     // Pointer to the Debugger object
     Debugger* myDebugger;
@@ -524,6 +578,9 @@ class OSystem
     // Pointer to the StateManager object
     StateManager* myStateManager;
 
+    // PNG object responsible for loading/saving PNG images
+    PNGLibrary* myPNGLib;
+
     // The list of log messages
     string myLogMessages;
 
@@ -531,34 +588,38 @@ class OSystem
     uInt32 myDesktopWidth, myDesktopHeight;
 
     // Supported fullscreen resolutions
-    ResolutionList myResolutions;*/
+    ResolutionList myResolutions;
 
     // Number of times per second to iterate through the main loop
-    //float myDisplayFrameRate;
+    float myDisplayFrameRate;
 
     // Time per frame for a video update, based on the current framerate
-    //uInt32 myTimePerFrame;
+    uInt32 myTimePerFrame;
 
     // The time (in milliseconds) from the UNIX epoch when the application starts
-    /*uInt32 myMillisAtStart;
+    uInt32 myMillisAtStart;
 
     // Indicates whether to stop the main loop
-    bool myQuitLoop;*/
+    bool myQuitLoop;
+
+    // ZIP static reference variable responsible for accessing ZIP files
+    static ZipHandler* myZipHandler;
 
   private:
-    /*enum { kNumUIPalettes = 2 };
+    enum { kNumUIPalettes = 2 };
     string myBaseDir;
     string myStateDir;
-    string mySnapshotDir;*/
+    string mySnapshotSaveDir;
+    string mySnapshotLoadDir;
     string myNVRamDir;
-    /*string myCfgDir;
+    string myCfgDir;
 
     string myCheatFile;
-    string myConfigFile;*/
+    string myConfigFile;
     string myPaletteFile;
-    /*string myPropertiesFile;
+    string myPropertiesFile;
 
-    string myRomFile;
+    FilesystemNode myRomFile;
     string myRomMD5;
 
     string myFeatures;
@@ -576,22 +637,11 @@ class OSystem
     // The font object to use for the ROM launcher
     GUI::Font* myLauncherFont;
 
-    // The font object to use for the console/debugger 
-    GUI::Font* myConsoleFont;
-
     // Indicates whether the main processing loop should proceed
-    struct TimingInfo {
-      uInt64 start;
-      uInt64 current;
-      uInt64 virt;
-      uInt64 totalTime;
-      uInt64 totalFrames;
-    };
     TimingInfo myTimingInfo;
 
     // Table of RGB values for GUI elements
     static uInt32 ourGUIColors[kNumUIPalettes][kNumColors-256];
-    */
 
   private:
     /**
@@ -615,7 +665,7 @@ class OSystem
     /**
       Creates an actual Console object based on the given info.
 
-      @param romfile  The full pathname of the ROM to use
+      @param romfile  The file node of the ROM to use (contains path)
       @param md5      The MD5sum of the ROM
       @param type     The bankswitch type of the ROM
       @param id       The additional id (if any) used by the ROM
@@ -623,14 +673,15 @@ class OSystem
       @return  The actual Console object, otherwise NULL
                (calling method is responsible for deleting it)
     */
-    Console* openConsole(const string& romfile, string& md5, string& type, string& id);
+    Console* openConsole(const FilesystemNode& romfile, string& md5,
+                         string& type, string& id);
 
     /**
       Open the given ROM and return an array containing its contents.
       Also, the properties database is updated with a valid ROM name
       for this ROM (if necessary).
 
-      @param rom    The absolute pathname of the ROM file
+      @param rom    The file node of the ROM to open (contains path)
       @param md5    The md5 calculated from the ROM file
                     (will be recalculated if necessary)
       @param size   The amount of data read into the image array
@@ -638,7 +689,7 @@ class OSystem
       @return  Pointer to the array, with size >=0 indicating valid data
                (calling method is responsible for deleting it)
     */
-    uInt8* openROM(string rom, string& md5, uInt32& size);
+    uInt8* openROM(const FilesystemNode& rom, string& md5, uInt32& size);
 
     /**
       Gets all possible info about the given console.
@@ -664,7 +715,7 @@ class OSystem
       @param defaultpath  The default path to use if the settings don't exist
     */
     void validatePath(string& path, const string& setting,
-    		              const string& defaultpath);
+                      const string& defaultpath);
 
     // Copy constructor isn't supported by this class so make it private
     OSystem(const OSystem&);

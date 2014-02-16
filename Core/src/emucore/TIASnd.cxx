@@ -179,7 +179,6 @@ void TIASound::volume(uInt32 percent)
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void TIASound::process(Int16* buffer, uInt32 samples)
-//void TIASound::process(Sample* buffer, uInt32 samples)
 {
   // Make temporary local copy
   uInt8 audc0 = myAUDC[0], audc1 = myAUDC[1];

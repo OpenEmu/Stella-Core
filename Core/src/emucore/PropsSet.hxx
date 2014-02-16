@@ -23,7 +23,7 @@
 #include <map>
 
 #include "bspf.hxx"
-//#include "FSNode.hxx"
+#include "FSNode.hxx"
 #include "Props.hxx"
 
 class OSystem;
@@ -97,8 +97,8 @@ class PropertiesSet
       @param defaults    Use the built-in defaults, ignoring any properties
                          from an external file
     */
-    //void getMD5WithInsert(const FilesystemNode& rom, const string& md5,
-    //                      Properties& properties);
+    void getMD5WithInsert(const FilesystemNode& rom, const string& md5,
+                          Properties& properties);
 
     /**
       Insert the properties into the set.  If a duplicate is inserted

@@ -92,8 +92,6 @@ class TIASound
       @param buffer The location to store generated samples
       @param samples The number of samples to generate
     */
-    //typedef uInt16 Sample;
-    //void process(Sample* buffer, uInt32 samples);
     void process(Int16* buffer, uInt32 samples);
 
     /**

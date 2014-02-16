@@ -50,8 +50,8 @@
 #include "TrackBall.hxx"
 #include "FrameBuffer.hxx"
 #include "OSystem.hxx"
-//#include "Menu.hxx"
-//#include "CommandMenu.hxx"
+#include "Menu.hxx"
+#include "CommandMenu.hxx"
 #include "Serializable.hxx"
 #include "Version.hxx"
 
@@ -344,8 +344,6 @@ void Console::togglePalette()
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-//OpenEmu: Function to receive palette
-extern void stellaOESetPalette(const uInt32* palette);
 void Console::setPalette(const string& type)
 {
   // Look at all the palettes, since we don't know which one is
@@ -377,8 +375,7 @@ void Console::setPalette(const string& type)
     (myDisplayFormat.compare(0, 5, "SECAM") == 0) ? palettes[paletteNum][2] :
      palettes[paletteNum][0];
 
-  //myOSystem->frameBuffer().setTIAPalette(palette);
-  stellaOESetPalette(palette);
+  myOSystem->frameBuffer().setTIAPalette(palette);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -430,20 +427,20 @@ FBInitStatus Console::initializeVideo(bool full)
   bool enable = myProperties.get(Display_Phosphor) == "YES";
   int blend = atoi(myProperties.get(Display_PPBlend).c_str());
   myOSystem->frameBuffer().enablePhosphor(enable, blend);
-//  myOSystem->frameBuffer().setNTSC(
-//    (NTSCFilter::Preset)myOSystem->settings().getInt("tv_filter"), false);
+  myOSystem->frameBuffer().setNTSC(
+    (NTSCFilter::Preset)myOSystem->settings().getInt("tv_filter"), false);
   setPalette(myOSystem->settings().getString("palette"));
 
   // Set the correct framerate based on the format of the ROM
   // This can be overridden by changing the framerate in the
   // VideoDialog box or on the commandline, but it can't be saved
   // (ie, framerate is now determined based on number of scanlines).
-  //float framerate = myOSystem->settings().getFloat("framerate");
-  //if(framerate > 0) myFramerate = float(framerate);
+  int framerate = myOSystem->settings().getInt("framerate");
+  if(framerate > 0) myFramerate = float(framerate);
   myOSystem->setFramerate(myFramerate);
 
   // Make sure auto-frame calculation is only enabled when necessary
-  //myTIA->enableAutoFrame(framerate <= 0);
+  myTIA->enableAutoFrame(framerate <= 0);
 
   return fbstatus;
 }
@@ -454,8 +451,8 @@ void Console::initializeAudio()
   // Initialize the sound interface.
   // The # of channels can be overridden in the AudioDialog box or on
   // the commandline, but it can't be saved.
-  //float framerate = myOSystem->settings().getFloat("framerate");
-  //if(framerate > 0) myFramerate = float(framerate);
+  int framerate = myOSystem->settings().getInt("framerate");
+  if(framerate > 0) myFramerate = float(framerate);
   const string& sound = myProperties.get(Cartridge_Sound);
 
   myOSystem->sound().close();
@@ -464,7 +461,7 @@ void Console::initializeAudio()
   myOSystem->sound().open();
 
   // Make sure auto-frame calculation is only enabled when necessary
-  //myTIA->enableAutoFrame(framerate <= 0);
+  myTIA->enableAutoFrame(framerate <= 0);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -579,15 +576,13 @@ void Console::setTIAProperties()
      myDisplayFormat == "SECAM60")
   {
     // Assume we've got ~262 scanlines (NTSC-like format)
-    //myFramerate = 60.0;
-    myFramerate = 59.92;
+    myFramerate = 60.0;
     myConsoleInfo.InitialFrameRate = "60";
   }
   else
   {
     // Assume we've got ~312 scanlines (PAL-like format)
-    //myFramerate = 50.0;
-    myFramerate = 49.92;
+    myFramerate = 50.0;
     myConsoleInfo.InitialFrameRate = "50";
 
     // PAL ROMs normally need at least 250 lines
