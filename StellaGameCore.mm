@@ -30,7 +30,37 @@
 #import "OE2600SystemResponderClient.h"
 #import <OpenGL/gl.h>
 
-#include "libretro.h"
+#include "Console.hxx"
+#include "Cart.hxx"
+#include "Props.hxx"
+#include "MD5.hxx"
+#include "Sound.hxx"
+#include "SerialPort.hxx"
+#include "TIA.hxx"
+#include "Switches.hxx"
+#include "StateManager.hxx"
+#include "PropsSet.hxx"
+#include "Paddles.hxx"
+#include "SoundSDL.hxx"
+
+static SoundSDL *vcsSound = 0;
+static uint32_t tiaSoundRate = 0, tiaSamplesPerFrame = 0;
+Int16 *sampleBuffer[2048];
+#include "Stubs.hh"
+
+static Console *console = 0;
+static Cartridge *cartridge = 0;
+static OSystem osystem;
+static StateManager stateManager(&osystem);
+//static Settings *settings = new Settings(&osystem);
+static bool p1DiffB = 1, p2DiffB = 1, vcsColor = 1;
+const uint32_t* Palette;
+
+// Set the palette for the current stella instance
+void stellaOESetPalette (const uInt32* palette)
+{
+    Palette = palette;
+}
 
 @interface StellaGameCore () <OE2600SystemResponderClient>
 {
@@ -39,141 +69,15 @@
     int16_t pad[2][12];
     NSString *romName;
     double sampleRate;
+    BOOL isPAL;
 }
 
 @end
 
-NSUInteger A2600EmulatorValues[] = { RETRO_DEVICE_ID_JOYPAD_UP, RETRO_DEVICE_ID_JOYPAD_DOWN, RETRO_DEVICE_ID_JOYPAD_LEFT, RETRO_DEVICE_ID_JOYPAD_RIGHT, RETRO_DEVICE_ID_JOYPAD_B, RETRO_DEVICE_ID_JOYPAD_L, RETRO_DEVICE_ID_JOYPAD_L2, RETRO_DEVICE_ID_JOYPAD_R, RETRO_DEVICE_ID_JOYPAD_R2, RETRO_DEVICE_ID_JOYPAD_START, RETRO_DEVICE_ID_JOYPAD_SELECT };
+//NSUInteger A2600EmulatorValues[] = { RETRO_DEVICE_ID_JOYPAD_UP, RETRO_DEVICE_ID_JOYPAD_DOWN, RETRO_DEVICE_ID_JOYPAD_LEFT, RETRO_DEVICE_ID_JOYPAD_RIGHT, RETRO_DEVICE_ID_JOYPAD_B, RETRO_DEVICE_ID_JOYPAD_L, RETRO_DEVICE_ID_JOYPAD_L2, RETRO_DEVICE_ID_JOYPAD_R, RETRO_DEVICE_ID_JOYPAD_R2, RETRO_DEVICE_ID_JOYPAD_START, RETRO_DEVICE_ID_JOYPAD_SELECT };
 
 StellaGameCore *current;
 @implementation StellaGameCore
-
-static void audio_callback(int16_t left, int16_t right)
-{
-	[[current ringBufferAtIndex:0] write:&left maxLength:2];
-    [[current ringBufferAtIndex:0] write:&right maxLength:2];
-}
-
-static size_t audio_batch_callback(const int16_t *data, size_t frames){
-    [[current ringBufferAtIndex:0] write:data maxLength:frames << 2];
-    return frames;
-}
-
-static void video_callback(const void *data, unsigned width, unsigned height, size_t pitch)
-{
-    current->videoWidth  = width;
-    current->videoHeight = height;
-    
-    dispatch_queue_t the_queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
-    
-    dispatch_apply(height, the_queue, ^(size_t y){
-        const uint32_t *src = (uint32_t*)data + y * (pitch >> 2); //pitch is in bytes not pixels
-        //uint16_t *dst = current->videoBuffer + y * current->videoWidth;
-        uint32_t *dst = current->videoBuffer + y * 320;
-        
-        memcpy(dst, src, sizeof(uint32_t)*width);
-    });
-}
-
-static void input_poll_callback(void)
-{
-	//NSLog(@"poll callback");
-}
-
-static int16_t input_state_callback(unsigned port, unsigned device, unsigned index, unsigned id)
-{
-    if (port == 0 & device == RETRO_DEVICE_JOYPAD) {
-        return current->pad[0][id];
-    }
-    else if(port == 1 & device == RETRO_DEVICE_JOYPAD) {
-        return current->pad[1][id];
-    }
-    
-    return 0;
-}
-
-static bool environment_callback(unsigned cmd, void *data)
-{
-    switch (cmd)
-    {
-        case RETRO_ENVIRONMENT_GET_SYSTEM_DIRECTORY:
-        {
-            // FIXME: Build a path in a more appropriate place
-            NSString *appSupportPath = [NSString pathWithComponents:@[
-                                        [NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, YES) lastObject],
-                                        @"OpenEmu", @"BIOS"]];
-            
-            *(const char **)data = [appSupportPath UTF8String];
-            NSLog(@"Environ SYSTEM_DIRECTORY: \"%@\".\n", appSupportPath);
-            break;
-        }
-        default:
-            NSLog(@"Environ UNSUPPORTED (#%u).\n", cmd);
-            return false;
-    }
-    
-    return true;
-}
-
-
-static void loadSaveFile(const char* path, int type)
-{
-    FILE *file;
-    
-    file = fopen(path, "rb");
-    if ( !file )
-    {
-        return;
-    }
-    
-    size_t size = retro_get_memory_size(type);
-    void *data = retro_get_memory_data(type);
-    
-    if (size == 0 || !data)
-    {
-        fclose(file);
-        return;
-    }
-    
-    int rc = fread(data, sizeof(uint8_t), size, file);
-    if ( rc != size )
-    {
-        NSLog(@"Couldn't load save file.");
-    }
-    
-    NSLog(@"Loaded save file: %s", path);
-    
-    fclose(file);
-}
-
-static void writeSaveFile(const char* path, int type)
-{
-    size_t size = retro_get_memory_size(type);
-    void *data = retro_get_memory_data(type);
-    
-    if ( data && size > 0 )
-    {
-        FILE *file = fopen(path, "wb");
-        if ( file != NULL )
-        {
-            NSLog(@"Saving state %s. Size: %d bytes.", path, (int)size);
-            retro_serialize(data, size);
-            if ( fwrite(data, sizeof(uint8_t), size, file) != size )
-                NSLog(@"Did not save state properly.");
-            fclose(file);
-        }
-    }
-}
-
-- (oneway void)didPush2600Button:(OE2600Button)button forPlayer:(NSUInteger)player;
-{
-    pad[player-1][A2600EmulatorValues[button]] = 1;
-}
-
-- (oneway void)didRelease2600Button:(OE2600Button)button forPlayer:(NSUInteger)player;
-{
-    pad[player-1][A2600EmulatorValues[button]] = 0;
-}
 
 - (id)init
 {
@@ -181,7 +85,7 @@ static void writeSaveFile(const char* path, int type)
     {
         if(videoBuffer)
             free(videoBuffer);
-        videoBuffer = (uint32_t*)malloc(320 * 210 * 4);
+        videoBuffer = (uint32_t*)malloc(160 * 256 * 4); // 320x210 ?
     }
     
 	current = self;
@@ -198,7 +102,37 @@ static void writeSaveFile(const char* path, int type)
 
 - (void)executeFrameSkippingFrame: (BOOL) skip
 {
-    retro_run();
+    tiaSamplesPerFrame = 31400.0f/console->getFramerate();
+    //Event &ev = osystem.eventHandler().event();
+    //console->event().set(Event::ConsoleReset, input_state_cb(Controller::Left, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START));
+    
+    //ev.set(Event::Type(Event::JoystickZeroFire + playerShift), state == INPUT_PUSHED);
+    //ev.set(Event::Type(Event::ConsoleReset), 1);
+    
+    console->controller(Controller::Left).update();
+    console->controller(Controller::Right).update();
+    console->switches().update();
+    
+    TIA& tia = console->tia();
+    tia.update();
+    
+    // Video
+    videoWidth = tia.width();
+    videoHeight = tia.height();
+    
+    uint8* currentFrame = tia.currentFrameBuffer() /*+ (tia.ystart() * 160)*/;
+    for ( unsigned int i = 0; i < videoHeight * videoWidth; ++i )
+    //for ( unsigned int i = 0; i < frameHeight * 160; ++i )
+        //videoBuffer[i] = Palette[tia.currentFrameBuffer()[i]];
+        videoBuffer[i] = Palette[currentFrame[i]];
+    
+    // Audio
+    vcsSound->processFragment((Int16*)sampleBuffer, tiaSamplesPerFrame);
+    [[current ringBufferAtIndex:0] write:sampleBuffer maxLength:tiaSamplesPerFrame << 2];
+    
+    isPAL = tia.isPAL();
+    //NSLog(@"Value: %d", isPAL);//console myDisplayFormat
+    //NSLog(@"Framerate: %f", console->getFramerate());
 }
 
 - (BOOL)loadFileAtPath:(NSString *)path error:(NSError **)error
@@ -209,64 +143,127 @@ static void writeSaveFile(const char* path, int type)
     size_t size;
     romName = [path copy];
     
-    //load cart, read bytes, get length
+    // load cart, read bytes, get length
     NSData* dataObj = [NSData dataWithContentsOfFile:[romName stringByStandardizingPath]];
     if(dataObj == nil) return false;
     size = [dataObj length];
     data = (uint8_t*)[dataObj bytes];
-    const char *meta = NULL;
     
-    //memory.copy(data, size);
-    retro_set_environment(environment_callback);
-	retro_init();
-	
-    retro_set_audio_sample(audio_callback);
-    retro_set_audio_sample_batch(audio_batch_callback);
-    retro_set_video_refresh(video_callback);
-    retro_set_input_poll(input_poll_callback);
-    retro_set_input_state(input_state_callback);
+//    //Input - Set paddles for games that require them (Range: 1-10)
+//    Paddles::setDigitalSensitivity(5);
+//    Paddles::setMouseSensitivity(5);
     
+    // Get the game properties
+    string cartMD5 = MD5((const uInt8*)data, size);
+    Properties props;
+    osystem.propSet().getMD5(cartMD5, props);
+    //PropertiesSet propslist(0);
+    //propslist.getMD5(cartMD5, props);
     
-    const char *fullPath = [path UTF8String];
-    
-    struct retro_game_info info = {NULL};
-    info.path = fullPath;
-    info.data = data;
-    info.size = size;
-    info.meta = meta;
-    
-    if(retro_load_game(&info))
+    // Load the cart
+    string cartType = props.get(Cartridge_Type);
+    string cartId;//, romType("AUTO-DETECT");
+    //Settings settings = osystem.settings();
+    Settings *settings = new Settings(&osystem);
+    settings->setValue("romloadcount", 0);
+    cartridge = Cartridge::create((const uInt8*)data, (uInt32)size, cartMD5, cartType, cartId, osystem, *settings);
+    if(cartridge == 0)
     {
-        NSString *path = romName;
-        NSString *extensionlessFilename = [[path lastPathComponent] stringByDeletingPathExtension];
-        
-        NSString *batterySavesDirectory = [self batterySavesDirectoryPath];
-        
-        if([batterySavesDirectory length] != 0)
-        {
-            [[NSFileManager defaultManager] createDirectoryAtPath:batterySavesDirectory withIntermediateDirectories:YES attributes:nil error:NULL];
+        return NO;
+    }
+    console = new Console(&osystem, cartridge, props);
+    osystem.myConsole = console;
+    
+    //tia.enableAutoFrame(false);
+    console->initializeVideo();
+    console->initializeAudio();
+    
+    // Get the ROM's width and height
+    TIA& tia = console->tia();
+    videoWidth = tia.width();
+    videoHeight = tia.height();
+    
+    // Config audio
+    tiaSoundRate = 31400;
+    //tiaSamplesPerFrame = tiaSoundRate/60.;
+    //tiaSamplesPerFrame = 31400.0f/59.92;
+    //vcsSound->tiaSound().outputFrequency(tiaSoundRate);
+    return YES;
+}
+
+- (oneway void)didPush2600Button:(OE2600Button)button forPlayer:(NSUInteger)player;
+{
+    //pad[player-1][A2600EmulatorValues[button]] = 1;
+    Event &ev = osystem.eventHandler().event();
+    //console->event().set(Event::ConsoleReset, input_state_cb(Controller::Left, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START));
+    
+    //ev.set(Event::Type(Event::JoystickZeroFire + playerShift), state == INPUT_PUSHED);
+    //ev.set(Event::Type(Event::ConsoleReset), 1);
+    
+    switch (button) {
+        case OE2600ButtonUp:
+            ev.set(Event::Type(Event::JoystickZeroUp), 1);
+            break;
+        case OE2600ButtonDown:
+            ev.set(Event::Type(Event::JoystickZeroDown), 1);
+            break;
+        case OE2600ButtonLeft:
+            ev.set(Event::Type(Event::JoystickZeroLeft), 1);
+            break;
+        case OE2600ButtonRight:
+            ev.set(Event::Type(Event::JoystickZeroRight), 1);
+            break;
+        case OE2600ButtonFire1:
+            ev.set(Event::Type(Event::JoystickZeroFire), 1);
+            break;
+        case OE2600ButtonReset:
+            ev.set(Event::Type(Event::ConsoleReset), 1);
+            break;
+        case OE2600ButtonSelect:
+            ev.set(Event::Type(Event::ConsoleSelect), 1);
+            break;
             
-            NSString *filePath = [batterySavesDirectory stringByAppendingPathComponent:[extensionlessFilename stringByAppendingPathExtension:@"sav"]];
+        default:
+            break;
+    }
+}
+
+- (oneway void)didRelease2600Button:(OE2600Button)button forPlayer:(NSUInteger)player;
+{
+    //pad[player-1][A2600EmulatorValues[button]] = 0;
+    Event &ev = osystem.eventHandler().event();
+    //console->event().set(Event::ConsoleReset, input_state_cb(Controller::Left, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START));
+    
+    //ev.set(Event::Type(Event::JoystickZeroFire + playerShift), state == INPUT_PUSHED);
+    //ev.set(Event::Type(Event::ConsoleReset), 0);
+    
+    switch (button) {
+        case OE2600ButtonUp:
+            ev.set(Event::Type(Event::JoystickZeroUp), 0);
+            break;
+        case OE2600ButtonDown:
+            ev.set(Event::Type(Event::JoystickZeroDown), 0);
+            break;
+        case OE2600ButtonLeft:
+            ev.set(Event::Type(Event::JoystickZeroLeft), 0);
+            break;
+        case OE2600ButtonRight:
+            ev.set(Event::Type(Event::JoystickZeroRight), 0);
+            break;
+        case OE2600ButtonFire1:
+            ev.set(Event::Type(Event::JoystickZeroFire), 0);
+            break;
+        case OE2600ButtonReset:
+            ev.set(Event::Type(Event::ConsoleReset), 0);
+            break;
+        case OE2600ButtonSelect:
+            ev.set(Event::Type(Event::ConsoleSelect), 0);
+            break;
             
-            loadSaveFile([filePath UTF8String], RETRO_MEMORY_SAVE_RAM);
-        }
-        
-        struct retro_system_av_info info;
-        retro_get_system_av_info(&info);
-        
-        current->frameInterval = info.timing.fps;
-        current->sampleRate = info.timing.sample_rate;
-        
-        //retro_set_controller_port_device(SNES_PORT_1, RETRO_DEVICE_JOYPAD);
-        
-        retro_get_region();
-        
-        retro_run();
-        
-        return YES;
+        default:
+            break;
     }
     
-    return NO;
 }
 
 #pragma mark Video
@@ -277,19 +274,18 @@ static void writeSaveFile(const char* path, int type)
 
 - (OEIntRect)screenRect
 {
-    //return OEIntRectMake(0, 0, current->videoWidth, current->videoHeight);
-    return OEIntRectMake(0, 0, current->videoWidth, current->videoHeight);
+    return OEIntRectMake(0, 0, videoWidth, videoHeight); //160w x 210h    160x250
+    
 }
 
 - (OEIntSize)bufferSize
 {
-    return OEIntSizeMake(320, 210);
-    //return OEIntSizeMake(current->videoWidth, current->videoHeight);
+    return OEIntSizeMake(160, 256);
 }
 
 - (OEIntSize)aspectSize
 {
-    return OEIntSizeMake(videoWidth * 2, videoHeight);
+    return OEIntSizeMake(160 * 2, videoHeight);
 }
 
 - (void)setupEmulation
@@ -298,49 +294,28 @@ static void writeSaveFile(const char* path, int type)
 
 - (void)resetEmulation
 {
-    retro_reset();
+    console->system().reset();
 }
 
 - (void)stopEmulation
 {
-    NSString *path = romName;
-    NSString *extensionlessFilename = [[path lastPathComponent] stringByDeletingPathExtension];
-    
-    NSString *batterySavesDirectory = [self batterySavesDirectoryPath];
-    
-    if([batterySavesDirectory length] != 0)
-    {
-        
-        [[NSFileManager defaultManager] createDirectoryAtPath:batterySavesDirectory withIntermediateDirectories:YES attributes:nil error:NULL];
-        
-        NSLog(@"Trying to save SRAM");
-        
-        NSString *filePath = [batterySavesDirectory stringByAppendingPathComponent:[extensionlessFilename stringByAppendingPathExtension:@"sav"]];
-        
-        writeSaveFile([filePath UTF8String], RETRO_MEMORY_SAVE_RAM);
-    }
-    
-    NSLog(@"2600 term");
-    retro_unload_game();
-    retro_deinit();
     [super stopEmulation];
 }
 
 - (void)dealloc
 {
     free(videoBuffer);
+    free(sampleBuffer);
     [super dealloc];
 }
 
 - (GLenum)pixelFormat
 {
-    //return GL_RGB;
     return GL_BGRA;
 }
 
 - (GLenum)pixelType
 {
-    //return GL_UNSIGNED_SHORT_5_6_5;
     return GL_UNSIGNED_INT_8_8_8_8_REV;
 }
 
@@ -351,12 +326,12 @@ static void writeSaveFile(const char* path, int type)
 
 - (double)audioSampleRate
 {
-    return sampleRate ? sampleRate : 31400;
+    return 31400;
 }
 
 - (NSTimeInterval)frameInterval
 {
-    return frameInterval ? frameInterval : 60.00;
+    return console->getFramerate();
 }
 
 - (NSUInteger)channelCount
@@ -366,12 +341,29 @@ static void writeSaveFile(const char* path, int type)
 
 - (BOOL)saveStateToFileAtPath:(NSString *)fileName
 {
-    return NO;
+    Serializer state([fileName UTF8String], 0);
+    if(!stateManager.saveState(state))
+    {
+        return NO;
+    }
+    return YES;
+    //return NO;
 }
 
 - (BOOL)loadStateFromFileAtPath:(NSString *)fileName
 {
-    return NO;
+    Serializer state([fileName UTF8String], 1);
+    if(!stateManager.loadState(state))
+    {
+        return NO;
+    }
+    return YES;
+    //return NO;
+}
+
+- (void)changeDisplayMode
+{
+    console->toggleFormat();
 }
 
 @end
