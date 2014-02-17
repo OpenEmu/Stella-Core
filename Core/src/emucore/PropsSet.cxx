@@ -34,7 +34,7 @@
 PropertiesSet::PropertiesSet(OSystem* osystem)
   : myOSystem(osystem)
 {
-  load(myOSystem->propertiesFile());
+  //load(myOSystem->propertiesFile());
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -148,18 +148,18 @@ bool PropertiesSet::getMD5(const string& md5, Properties& properties,
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void PropertiesSet::getMD5WithInsert(const FilesystemNode& rom,
-                                     const string& md5, Properties& properties)
-{
-  if(!getMD5(md5, properties))
-  {
-    properties.set(Cartridge_MD5, md5);
-    // Create a name suitable for using in properties
-    properties.set(Cartridge_Name, rom.getNameWithExt(""));
-
-    insert(properties, false);
-  }
-}
+//void PropertiesSet::getMD5WithInsert(const FilesystemNode& rom,
+//                                     const string& md5, Properties& properties)
+//{
+//  if(!getMD5(md5, properties))
+//  {
+//    properties.set(Cartridge_MD5, md5);
+//    // Create a name suitable for using in properties
+//    properties.set(Cartridge_Name, rom.getNameWithExt(""));
+//
+//    insert(properties, false);
+//  }
+//}
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void PropertiesSet::insert(const Properties& properties, bool save)

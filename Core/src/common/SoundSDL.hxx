@@ -24,7 +24,7 @@
 
 class OSystem;
 
-#include <SDL.h>
+//#include <SDL.h>
 
 #include "bspf.hxx"
 #include "TIASnd.hxx"
@@ -159,7 +159,7 @@ class SoundSDL : public Sound
     */
     string name() const { return "TIASound"; }
 
-  protected:
+  public:
     /**
       Invoked by the sound callback to process the next sound fragment.
       The stream is 16-bits (even though the callback is 8-bits), since
@@ -277,6 +277,16 @@ class SoundSDL : public Sound
     uInt32 myVolume;
 
     // Audio specification structure
+    typedef struct{
+        int freq;
+        uInt16 format;
+        uInt8 channels;
+        uInt8 silence;
+        uInt16 samples;
+        uInt32 size;
+        void (*callback)(void *userdata, uInt8 *stream, int len);
+        void *userdata;
+    } SDL_AudioSpec;
     SDL_AudioSpec myHardwareSpec;
 
     // Queue of TIA register writes

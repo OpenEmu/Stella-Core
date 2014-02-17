@@ -20,21 +20,25 @@
 #ifndef MEDIA_FACTORY_HXX
 #define MEDIA_FACTORY_HXX
 
-#include "OSystem.hxx"
-#include "Settings.hxx"
+class FrameBuffer;
+class Sound;
+class OSystem;
 
-#include "FrameBuffer.hxx"
-#include "FrameBufferSoft.hxx"
-#ifdef DISPLAY_OPENGL
-  #include "FrameBufferGL.hxx"
-#endif
-
-#include "Sound.hxx"
-#ifdef SOUND_SUPPORT
-  #include "SoundSDL.hxx"
-#else
-  #include "SoundNull.hxx"
-#endif
+//#include "OSystem.hxx"
+//#include "Settings.hxx"
+//
+//#include "FrameBuffer.hxx"
+//#include "FrameBufferSoft.hxx"
+//#ifdef DISPLAY_OPENGL
+//  #include "FrameBufferGL.hxx"
+//#endif
+//
+//#include "Sound.hxx"
+//#ifdef SOUND_SUPPORT
+//  #include "SoundSDL.hxx"
+//#else
+//  #include "SoundNull.hxx"
+//#endif
 
 /**
   This class deals with the different framebuffer/sound implementations
@@ -50,42 +54,42 @@ class MediaFactory
 {
   public:
     static FrameBuffer* createVideo(OSystem* osystem)
-    {
-      FrameBuffer* fb = (FrameBuffer*) NULL;
-
-      // OpenGL mode *may* fail, so we check for it first
-    #ifdef DISPLAY_OPENGL
-      if(osystem->settings().getString("video") == "gl")
-      {
-        const string& gl_lib = osystem->settings().getString("gl_lib");
-        if(FrameBufferGL::loadLibrary(gl_lib))
-          fb = new FrameBufferGL(osystem);
-      }
-    #endif
-
-      // If OpenGL failed, or if it wasn't requested, create the appropriate
-      // software framebuffer
-      if(!fb)
-        fb = new FrameBufferSoft(osystem);
-
-      // This should never happen
-      assert(fb != NULL);
-
-      return fb;
-    }
+//    {
+//      FrameBuffer* fb = (FrameBuffer*) NULL;
+//
+//      // OpenGL mode *may* fail, so we check for it first
+//    #ifdef DISPLAY_OPENGL
+//      if(osystem->settings().getString("video") == "gl")
+//      {
+//        const string& gl_lib = osystem->settings().getString("gl_lib");
+//        if(FrameBufferGL::loadLibrary(gl_lib))
+//          fb = new FrameBufferGL(osystem);
+//      }
+//    #endif
+//
+//      // If OpenGL failed, or if it wasn't requested, create the appropriate
+//      // software framebuffer
+//      if(!fb)
+//        fb = new FrameBufferSoft(osystem);
+//
+//      // This should never happen
+//      assert(fb != NULL);
+//
+//      return fb;
+//    }
 
     static Sound* createAudio(OSystem* osystem)
-    {
-      Sound* sound = (Sound*) NULL;
-
-    #ifdef SOUND_SUPPORT
-      sound = new SoundSDL(osystem);
-    #else
-      sound = new SoundNull(osystem);
-    #endif
-
-      return sound;
-    }
+//    {
+//      Sound* sound = (Sound*) NULL;
+//
+//    #ifdef SOUND_SUPPORT
+//      sound = new SoundSDL(osystem);
+//    #else
+//      sound = new SoundNull(osystem);
+//    #endif
+//
+//      return sound;
+//    }
 };
 
 #endif

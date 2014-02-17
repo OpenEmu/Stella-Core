@@ -30,8 +30,8 @@ Serializer::Serializer(const string& filename, bool readonly)
 {
   if(readonly)
   {
-    FilesystemNode node(filename);
-    if(node.isFile() && node.isReadable())
+    //FilesystemNode node(filename);
+    //if(node.isFile() && node.isReadable())
     {
       fstream* str = new fstream(filename.c_str(), ios::in | ios::binary);
       if(str && str->is_open())

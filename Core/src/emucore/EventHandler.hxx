@@ -21,7 +21,7 @@
 #define EVENTHANDLER_HXX
 
 #include <map>
-#include <SDL.h>
+//#include <SDL.h>
 
 class Console;
 class OSystem;
@@ -142,7 +142,7 @@ class EventHandler
 
       @return The State type
     */
-    State state() const { return myState; }
+//    State state() const { return myState; }
 
     /**
       Resets the state machine of the EventHandler to the defaults
@@ -175,24 +175,24 @@ class EventHandler
     */
     void setContinuousSnapshots(uInt32 interval);
 
-    inline bool kbdAlt(int mod) const
-    {
-  #ifndef MAC_OSX
-      return (mod & KMOD_ALT);
-  #else
-      return (mod & KMOD_META);
-  #endif
-    }
-
-    inline bool kbdControl(int mod) const
-    {
-      return (mod & KMOD_CTRL) > 0;
-    }
-
-    inline bool kbdShift(int mod) const
-    {
-      return (mod & KMOD_SHIFT);
-    }
+//    inline bool kbdAlt(int mod) const
+//    {
+//  #ifndef MAC_OSX
+//      return (mod & KMOD_ALT);
+//  #else
+//      return (mod & KMOD_META);
+//  #endif
+//    }
+//
+//    inline bool kbdControl(int mod) const
+//    {
+//      return (mod & KMOD_CTRL) > 0;
+//    }
+//
+//    inline bool kbdShift(int mod) const
+//    {
+//      return (mod & KMOD_SHIFT);
+//    }
 
     void enterMenuMode(State state);
     void leaveMenuMode();
@@ -209,7 +209,7 @@ class EventHandler
     */
     void handleEvent(Event::Type type, Int32 value);
 
-    bool frying() const { return myFryingFlag; }
+//    bool frying() const { return myFryingFlag; }
 
     void getActionList(EventMode mode, StringList& list) const;
     void getComboList(EventMode mode, VariantList& map) const;
@@ -218,14 +218,14 @@ class EventHandler
     void getComboListForEvent(Event::Type event, StringList& list) const;
     void setComboListForEvent(Event::Type event, const StringList& events);
 
-    Event::Type eventForKey(StellaKey key, EventMode mode) const
-      { return myKeyTable[key][mode]; }
-    Event::Type eventForJoyAxis(int stick, int axis, int value, EventMode mode) const
-      { return myJoysticks[stick].axisTable[axis][(value > 0)][mode]; }
-    Event::Type eventForJoyButton(int stick, int button, EventMode mode) const
-      { return myJoysticks[stick].btnTable[button][mode]; }
-    Event::Type eventForJoyHat(int stick, int hat, int value, EventMode mode) const
-      { return myJoysticks[stick].hatTable[hat][value][mode]; }
+//    Event::Type eventForKey(StellaKey key, EventMode mode) const
+//      { return myKeyTable[key][mode]; }
+//    Event::Type eventForJoyAxis(int stick, int axis, int value, EventMode mode) const
+//      { return myJoysticks[stick].axisTable[axis][(value > 0)][mode]; }
+//    Event::Type eventForJoyButton(int stick, int button, EventMode mode) const
+//      { return myJoysticks[stick].btnTable[button][mode]; }
+//    Event::Type eventForJoyHat(int stick, int hat, int value, EventMode mode) const
+//      { return myJoysticks[stick].hatTable[hat][value][mode]; }
 
     Event::Type eventAtIndex(int idx, EventMode mode) const;
     string actionAtIndex(int idx, EventMode mode) const;
@@ -319,12 +319,12 @@ class EventHandler
     void allowAllDirections(bool allow) { myAllowAllDirectionsFlag = allow; }
 
   private:
-    enum {
-      kComboSize          = 16,
-      kEventsPerCombo     = 8,
-      kEmulActionListSize = 75 + kComboSize,
-      kMenuActionListSize = 14
-    };
+//    enum {
+//      kComboSize          = 16,
+//      kEventsPerCombo     = 8,
+//      kEmulActionListSize = 75 + kComboSize,
+//      kMenuActionListSize = 14
+//    };
 
     /**
       Detects and changes the eventhandler state
@@ -363,48 +363,48 @@ class EventHandler
 
   private:
     // Structure used for action menu items
-    struct ActionList {
-      Event::Type event;
-      const char* action;
-      char* key;
-      bool allow_combo;
-    };
-
-    struct JoyMouse {   // Used for joystick to mouse emulation
-      bool active;
-      int x, y, x_amt, y_amt, amt, val, old_val;
-    };
+//    struct ActionList {
+//      Event::Type event;
+//      const char* action;
+//      char* key;
+//      bool allow_combo;
+//    };
+//
+//    struct JoyMouse {   // Used for joystick to mouse emulation
+//      bool active;
+//      int x, y, x_amt, y_amt, amt, val, old_val;
+//    };
 
     // Global OSystem object
-    OSystem* myOSystem;
+//    OSystem* myOSystem;
 
     // Global Event object
     Event myEvent;
 
     // Indicates current overlay object
-    DialogContainer* myOverlay;
-
-    // MouseControl object, which takes care of switching the mouse between
-    // all possible controller modes
-    MouseControl* myMouseControl;
-
-    // Array of key events, indexed by StellaKey
-    Event::Type myKeyTable[KBDK_LAST][kNumModes];
-
-    // The event(s) assigned to each combination event
-    Event::Type myComboTable[kComboSize][kEventsPerCombo];
-
-    // Array of strings which correspond to the given StellaKey
-    string ourKBDKMapping[KBDK_LAST];
-
-    // Indicates the current state of the system (ie, which mode is current)
-    State myState;
+//    DialogContainer* myOverlay;
+//
+//    // MouseControl object, which takes care of switching the mouse between
+//    // all possible controller modes
+//    MouseControl* myMouseControl;
+//
+//    // Array of key events, indexed by StellaKey
+//    Event::Type myKeyTable[KBDK_LAST][kNumModes];
+//
+//    // The event(s) assigned to each combination event
+//    Event::Type myComboTable[kComboSize][kEventsPerCombo];
+//
+//    // Array of strings which correspond to the given StellaKey
+//    string ourKBDKMapping[KBDK_LAST];
+//
+//    // Indicates the current state of the system (ie, which mode is current)
+//    State myState;
 
     // Indicates whether the joystick emulates 'impossible' directions
-    bool myAllowAllDirectionsFlag;
+    bool myAllowAllDirectionsFlag;;
 
     // Indicates whether or not we're in frying mode
-    bool myFryingFlag;
+/*     bool myFryingFlag;
 
     // Indicates whether the key-combos tied to the Control key are
     // being used or not (since Ctrl by default is the fire button,
@@ -471,7 +471,7 @@ class EventHandler
     };
     StellaJoystick* myJoysticks;
     uInt32 myNumJoysticks;
-    map<string,string> myJoystickMap;
+    map<string,string> myJoystickMap;*/
 };
 
 #endif

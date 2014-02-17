@@ -1,5 +1,5 @@
 /*
- Copyright (c) 2013, OpenEmu Team
+ Copyright (c) 2014, OpenEmu Team
  
 
  Redistribution and use in source and binary forms, with or without
@@ -52,7 +52,6 @@ static Console *console = 0;
 static Cartridge *cartridge = 0;
 static OSystem osystem;
 static StateManager stateManager(&osystem);
-//static Settings *settings = new Settings(&osystem);
 static bool p1DiffB = 1, p2DiffB = 1, vcsColor = 1;
 const uint32_t* Palette;
 
@@ -69,12 +68,9 @@ void stellaOESetPalette (const uInt32* palette)
     int16_t pad[2][12];
     NSString *romName;
     double sampleRate;
-    BOOL isPAL;
 }
 
 @end
-
-//NSUInteger A2600EmulatorValues[] = { RETRO_DEVICE_ID_JOYPAD_UP, RETRO_DEVICE_ID_JOYPAD_DOWN, RETRO_DEVICE_ID_JOYPAD_LEFT, RETRO_DEVICE_ID_JOYPAD_RIGHT, RETRO_DEVICE_ID_JOYPAD_B, RETRO_DEVICE_ID_JOYPAD_L, RETRO_DEVICE_ID_JOYPAD_L2, RETRO_DEVICE_ID_JOYPAD_R, RETRO_DEVICE_ID_JOYPAD_R2, RETRO_DEVICE_ID_JOYPAD_START, RETRO_DEVICE_ID_JOYPAD_SELECT };
 
 StellaGameCore *current;
 @implementation StellaGameCore
@@ -85,7 +81,7 @@ StellaGameCore *current;
     {
         if(videoBuffer)
             free(videoBuffer);
-        videoBuffer = (uint32_t*)malloc(160 * 256 * 4); // 320x210 ?
+        videoBuffer = (uint32_t*)malloc(160 * 256 * 4);
     }
     
 	current = self;
@@ -103,11 +99,6 @@ StellaGameCore *current;
 - (void)executeFrameSkippingFrame: (BOOL) skip
 {
     tiaSamplesPerFrame = 31400.0f/console->getFramerate();
-    //Event &ev = osystem.eventHandler().event();
-    //console->event().set(Event::ConsoleReset, input_state_cb(Controller::Left, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START));
-    
-    //ev.set(Event::Type(Event::JoystickZeroFire + playerShift), state == INPUT_PUSHED);
-    //ev.set(Event::Type(Event::ConsoleReset), 1);
     
     console->controller(Controller::Left).update();
     console->controller(Controller::Right).update();
@@ -129,10 +120,6 @@ StellaGameCore *current;
     // Audio
     vcsSound->processFragment((Int16*)sampleBuffer, tiaSamplesPerFrame);
     [[current ringBufferAtIndex:0] write:sampleBuffer maxLength:tiaSamplesPerFrame << 2];
-    
-    isPAL = tia.isPAL();
-    //NSLog(@"Value: %d", isPAL);//console myDisplayFormat
-    //NSLog(@"Framerate: %f", console->getFramerate());
 }
 
 - (BOOL)loadFileAtPath:(NSString *)path error:(NSError **)error
@@ -163,14 +150,15 @@ StellaGameCore *current;
     // Load the cart
     string cartType = props.get(Cartridge_Type);
     string cartId;//, romType("AUTO-DETECT");
-    //Settings settings = osystem.settings();
     Settings *settings = new Settings(&osystem);
     settings->setValue("romloadcount", 0);
     cartridge = Cartridge::create((const uInt8*)data, (uInt32)size, cartMD5, cartType, cartId, osystem, *settings);
+    
     if(cartridge == 0)
     {
         return NO;
     }
+    
     console = new Console(&osystem, cartridge, props);
     osystem.myConsole = console;
     
@@ -183,39 +171,42 @@ StellaGameCore *current;
     videoWidth = tia.width();
     videoHeight = tia.height();
     
-    // Config audio
-    tiaSoundRate = 31400;
-    //tiaSamplesPerFrame = tiaSoundRate/60.;
-    //tiaSamplesPerFrame = 31400.0f/59.92;
-    //vcsSound->tiaSound().outputFrequency(tiaSoundRate);
     return YES;
 }
 
 - (oneway void)didPush2600Button:(OE2600Button)button forPlayer:(NSUInteger)player;
 {
-    //pad[player-1][A2600EmulatorValues[button]] = 1;
     Event &ev = osystem.eventHandler().event();
-    //console->event().set(Event::ConsoleReset, input_state_cb(Controller::Left, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START));
-    
-    //ev.set(Event::Type(Event::JoystickZeroFire + playerShift), state == INPUT_PUSHED);
-    //ev.set(Event::Type(Event::ConsoleReset), 1);
+    int playerShift = player != 1 ? 7 : 0;
     
     switch (button) {
         case OE2600ButtonUp:
-            ev.set(Event::Type(Event::JoystickZeroUp), 1);
+            ev.set(Event::Type(Event::JoystickZeroUp + playerShift), 1);
             break;
         case OE2600ButtonDown:
-            ev.set(Event::Type(Event::JoystickZeroDown), 1);
+            ev.set(Event::Type(Event::JoystickZeroDown + playerShift), 1);
             break;
         case OE2600ButtonLeft:
-            ev.set(Event::Type(Event::JoystickZeroLeft), 1);
+            ev.set(Event::Type(Event::JoystickZeroLeft + playerShift), 1);
             break;
         case OE2600ButtonRight:
-            ev.set(Event::Type(Event::JoystickZeroRight), 1);
+            ev.set(Event::Type(Event::JoystickZeroRight + playerShift), 1);
             break;
         case OE2600ButtonFire1:
-            ev.set(Event::Type(Event::JoystickZeroFire), 1);
+            ev.set(Event::Type(Event::JoystickZeroFire + playerShift), 1);
             break;
+//        case OE2600ButtonLeftDiffA:
+//            ev.set(Event::Type(Event::ConsoleLeftDiffA), 1);
+//            break;
+//        case OE2600ButtonLeftDiffB:
+//            ev.set(Event::Type(Event::ConsoleLeftDiffB), 1);
+//            break;
+//        case OE2600ButtonRightDiffA:
+//            ev.set(Event::Type(Event::ConsoleRightDiffA), 1);
+//            break;
+//        case OE2600ButtonRightDiffB:
+//            ev.set(Event::Type(Event::ConsoleRightDiffB), 1);
+//            break;
         case OE2600ButtonReset:
             ev.set(Event::Type(Event::ConsoleReset), 1);
             break;
@@ -230,29 +221,37 @@ StellaGameCore *current;
 
 - (oneway void)didRelease2600Button:(OE2600Button)button forPlayer:(NSUInteger)player;
 {
-    //pad[player-1][A2600EmulatorValues[button]] = 0;
     Event &ev = osystem.eventHandler().event();
-    //console->event().set(Event::ConsoleReset, input_state_cb(Controller::Left, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START));
-    
-    //ev.set(Event::Type(Event::JoystickZeroFire + playerShift), state == INPUT_PUSHED);
-    //ev.set(Event::Type(Event::ConsoleReset), 0);
+    int playerShift = player != 1 ? 7 : 0;
     
     switch (button) {
         case OE2600ButtonUp:
-            ev.set(Event::Type(Event::JoystickZeroUp), 0);
+            ev.set(Event::Type(Event::JoystickZeroUp + playerShift), 0);
             break;
         case OE2600ButtonDown:
-            ev.set(Event::Type(Event::JoystickZeroDown), 0);
+            ev.set(Event::Type(Event::JoystickZeroDown + playerShift), 0);
             break;
         case OE2600ButtonLeft:
-            ev.set(Event::Type(Event::JoystickZeroLeft), 0);
+            ev.set(Event::Type(Event::JoystickZeroLeft + playerShift), 0);
             break;
         case OE2600ButtonRight:
-            ev.set(Event::Type(Event::JoystickZeroRight), 0);
+            ev.set(Event::Type(Event::JoystickZeroRight + playerShift), 0);
             break;
         case OE2600ButtonFire1:
-            ev.set(Event::Type(Event::JoystickZeroFire), 0);
+            ev.set(Event::Type(Event::JoystickZeroFire + playerShift), 0);
             break;
+//        case OE2600ButtonLeftDiffA:
+//            ev.set(Event::Type(Event::ConsoleLeftDiffA), 0);
+//            break;
+//        case OE2600ButtonLeftDiffB:
+//            ev.set(Event::Type(Event::ConsoleLeftDiffB), 0);
+//            break;
+//        case OE2600ButtonRightDiffA:
+//            ev.set(Event::Type(Event::ConsoleRightDiffA), 0);
+//            break;
+//        case OE2600ButtonRightDiffB:
+//            ev.set(Event::Type(Event::ConsoleRightDiffB), 0);
+//            break;
         case OE2600ButtonReset:
             ev.set(Event::Type(Event::ConsoleReset), 0);
             break;
@@ -274,7 +273,7 @@ StellaGameCore *current;
 
 - (OEIntRect)screenRect
 {
-    return OEIntRectMake(0, 0, videoWidth, videoHeight); //160w x 210h    160x250
+    return OEIntRectMake(0, 0, videoWidth, videoHeight);
     
 }
 
@@ -347,7 +346,6 @@ StellaGameCore *current;
         return NO;
     }
     return YES;
-    //return NO;
 }
 
 - (BOOL)loadStateFromFileAtPath:(NSString *)fileName
@@ -358,7 +356,6 @@ StellaGameCore *current;
         return NO;
     }
     return YES;
-    //return NO;
 }
 
 - (void)changeDisplayMode
