@@ -195,18 +195,24 @@ StellaGameCore *current;
         case OE2600ButtonFire1:
             ev.set(Event::Type(Event::JoystickZeroFire + playerShift), 1);
             break;
-//        case OE2600ButtonLeftDiffA:
-//            ev.set(Event::Type(Event::ConsoleLeftDiffA), 1);
-//            break;
-//        case OE2600ButtonLeftDiffB:
-//            ev.set(Event::Type(Event::ConsoleLeftDiffB), 1);
-//            break;
-//        case OE2600ButtonRightDiffA:
-//            ev.set(Event::Type(Event::ConsoleRightDiffA), 1);
-//            break;
-//        case OE2600ButtonRightDiffB:
-//            ev.set(Event::Type(Event::ConsoleRightDiffB), 1);
-//            break;
+        case OE2600ButtonLeftDiffA:
+            ev.set(Event::Type(Event::ConsoleLeftDiffA), 1);
+            break;
+        case OE2600ButtonLeftDiffB:
+            ev.set(Event::Type(Event::ConsoleLeftDiffB), 1);
+            break;
+        case OE2600ButtonRightDiffA:
+            ev.set(Event::Type(Event::ConsoleRightDiffA), 1);
+            break;
+        case OE2600ButtonRightDiffB:
+            ev.set(Event::Type(Event::ConsoleRightDiffB), 1);
+            break;
+        case OE2600ButtonTVTypeColor:
+            ev.set(Event::Type(Event::ConsoleColor), 1);
+            break;
+        case OE2600ButtonTVTypeBlackAndWhite:
+            ev.set(Event::Type(Event::ConsoleBlackWhite), 1);
+            break;
         case OE2600ButtonReset:
             ev.set(Event::Type(Event::ConsoleReset), 1);
             break;
@@ -240,18 +246,24 @@ StellaGameCore *current;
         case OE2600ButtonFire1:
             ev.set(Event::Type(Event::JoystickZeroFire + playerShift), 0);
             break;
-//        case OE2600ButtonLeftDiffA:
-//            ev.set(Event::Type(Event::ConsoleLeftDiffA), 0);
-//            break;
-//        case OE2600ButtonLeftDiffB:
-//            ev.set(Event::Type(Event::ConsoleLeftDiffB), 0);
-//            break;
-//        case OE2600ButtonRightDiffA:
-//            ev.set(Event::Type(Event::ConsoleRightDiffA), 0);
-//            break;
-//        case OE2600ButtonRightDiffB:
-//            ev.set(Event::Type(Event::ConsoleRightDiffB), 0);
-//            break;
+        case OE2600ButtonLeftDiffA:
+            ev.set(Event::Type(Event::ConsoleLeftDiffA), 0);
+            break;
+        case OE2600ButtonLeftDiffB:
+            ev.set(Event::Type(Event::ConsoleLeftDiffB), 0);
+            break;
+        case OE2600ButtonRightDiffA:
+            ev.set(Event::Type(Event::ConsoleRightDiffA), 0);
+            break;
+        case OE2600ButtonRightDiffB:
+            ev.set(Event::Type(Event::ConsoleRightDiffB), 0);
+            break;
+        case OE2600ButtonTVTypeColor:
+            ev.set(Event::Type(Event::ConsoleColor), 0);
+            break;
+        case OE2600ButtonTVTypeBlackAndWhite:
+            ev.set(Event::Type(Event::ConsoleBlackWhite), 0);
+            break;
         case OE2600ButtonReset:
             ev.set(Event::Type(Event::ConsoleReset), 0);
             break;
