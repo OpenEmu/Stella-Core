@@ -44,7 +44,7 @@
 #include "SoundSDL.hxx"
 
 static SoundSDL *vcsSound = 0;
-static uint32_t tiaSoundRate = 0, tiaSamplesPerFrame = 0;
+static uint32_t tiaSamplesPerFrame = 0;
 Int16 *sampleBuffer[2048];
 #include "Stubs.hh"
 
@@ -52,7 +52,6 @@ static Console *console = 0;
 static Cartridge *cartridge = 0;
 static OSystem osystem;
 static StateManager stateManager(&osystem);
-static bool p1DiffB = 1, p2DiffB = 1, vcsColor = 1;
 const uint32_t* Palette;
 
 // Set the palette for the current stella instance
@@ -111,11 +110,8 @@ StellaGameCore *current;
     videoWidth = tia.width();
     videoHeight = tia.height();
     
-    uint8* currentFrame = tia.currentFrameBuffer() /*+ (tia.ystart() * 160)*/;
-    for ( unsigned int i = 0; i < videoHeight * videoWidth; ++i )
-    //for ( unsigned int i = 0; i < frameHeight * 160; ++i )
-        //videoBuffer[i] = Palette[tia.currentFrameBuffer()[i]];
-        videoBuffer[i] = Palette[currentFrame[i]];
+    for (unsigned int i = 0; i < videoHeight * videoWidth; ++i)
+        videoBuffer[i] = Palette[tia.currentFrameBuffer()[i]];
     
     // Audio
     vcsSound->processFragment((Int16*)sampleBuffer, tiaSamplesPerFrame);
@@ -136,16 +132,10 @@ StellaGameCore *current;
     size = [dataObj length];
     data = (uint8_t*)[dataObj bytes];
     
-//    //Input - Set paddles for games that require them (Range: 1-10)
-//    Paddles::setDigitalSensitivity(5);
-//    Paddles::setMouseSensitivity(5);
-    
     // Get the game properties
     string cartMD5 = MD5((const uInt8*)data, size);
     Properties props;
     osystem.propSet().getMD5(cartMD5, props);
-    //PropertiesSet propslist(0);
-    //propslist.getMD5(cartMD5, props);
     
     // Load the cart
     string cartType = props.get(Cartridge_Type);
