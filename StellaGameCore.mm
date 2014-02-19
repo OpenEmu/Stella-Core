@@ -64,7 +64,7 @@ void stellaOESetPalette (const uInt32* palette)
 {
     uint32_t *videoBuffer;
     int videoWidth, videoHeight;
-    int16_t pad[2][12];
+    int16_t pad[2][OE2600ButtonCount];
     NSString *romName;
     double sampleRate;
 }
