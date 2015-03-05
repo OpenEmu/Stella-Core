@@ -340,6 +340,64 @@ StellaGameCore *current;
     return 2;
 }
 
+- (NSData *)serializeStateWithError:(NSError **)outError
+{
+    Serializer serializer;
+    if(stateManager.saveState(serializer))
+    {
+        serializer.myStream->seekg(0, std::ios::end);
+        NSUInteger length = serializer.myStream->tellg();
+        serializer.myStream->seekg(0, std::ios::beg);
+        
+        char *bytes = (char *)malloc(length);
+        serializer.myStream->read(bytes, length);
+        
+        return [NSData dataWithBytes:bytes length:length];
+    }
+    else
+    {
+        NSError *error = [NSError errorWithDomain:OEGameCoreErrorDomain
+                                             code:OEGameCoreCouldNotSaveStateError
+                                         userInfo:@{
+                                                    NSLocalizedDescriptionKey : @"Could not serialize save state data"
+                                                    }];
+        
+        if(outError)
+        {
+            *outError = error;
+        }
+        return nil;
+    }
+}
+
+- (BOOL)deserializeState:(NSData *)state withError:(NSError **)outError
+{
+    char const *bytes = (char const *)([state bytes]);
+    std::streamsize size = [state length];
+    
+    Serializer serializer;
+    serializer.myStream->write(bytes, size);
+    
+    if(stateManager.loadState(serializer))
+    {
+        return YES;
+    }
+    else
+    {
+        NSError *error = [NSError errorWithDomain:OEGameCoreErrorDomain
+                                             code:OEGameCoreCouldNotLoadStateError
+                                         userInfo:@{
+                                                    NSLocalizedDescriptionKey : @"The save state data could not be loaded"
+                                                    }];
+        
+        if(outError)
+        {
+            *outError = error;
+        }
+        return NO;
+    }
+}
+
 - (BOOL)saveStateToFileAtPath:(NSString *)fileName
 {
     Serializer state([fileName UTF8String], 0);
