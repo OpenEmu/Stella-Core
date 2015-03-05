@@ -192,7 +192,7 @@ class Serializer
     */
     void putBool(bool b);
 
-  private:
+  public:
     // The stream to send the serialized data to.
     iostream* myStream;
     bool myUseFilestream;
