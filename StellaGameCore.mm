@@ -352,7 +352,7 @@ StellaGameCore *current;
         char *bytes = (char *)malloc(length);
         serializer.myStream->read(bytes, length);
         
-        return [NSData dataWithBytes:bytes length:length];
+        return [NSData dataWithBytesNoCopy:bytes length:length];
     }
     else
     {
