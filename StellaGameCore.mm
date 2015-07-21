@@ -286,7 +286,7 @@ StellaGameCore *current;
 
 - (OEIntSize)aspectSize
 {
-    return OEIntSizeMake(160 * 2, videoHeight);
+    return OEIntSizeMake(videoWidth * (12.0/7.0), videoHeight);
 }
 
 - (void)setupEmulation
