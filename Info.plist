@@ -2,18 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>OEGameCoreOptions</key>
-	<dict>
-		<key>openemu.system.2600</key>
-		<dict>
-			<key>OEGameCoreRewindBufferSeconds</key>
-			<integer>3600</integer>
-			<key>OEGameCoreRewindInterval</key>
-			<integer>0</integer>
-			<key>OEGameCoreSupportsRewinding</key>
-			<true/>
-		</dict>
-	</dict>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>English</string>
 	<key>CFBundleExecutable</key>
@@ -21,7 +9,7 @@
 	<key>CFBundleIconFile</key>
 	<string></string>
 	<key>CFBundleIdentifier</key>
-	<string>org.openemu.${PRODUCT_NAME:identifier}</string>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundlePackageType</key>
@@ -34,6 +22,18 @@
 	<string>OEGameCoreController</string>
 	<key>OEGameCoreClass</key>
 	<string>StellaGameCore</string>
+	<key>OEGameCoreOptions</key>
+	<dict>
+		<key>openemu.system.2600</key>
+		<dict>
+			<key>OEGameCoreRewindBufferSeconds</key>
+			<integer>3600</integer>
+			<key>OEGameCoreRewindInterval</key>
+			<integer>0</integer>
+			<key>OEGameCoreSupportsRewinding</key>
+			<true/>
+		</dict>
+	</dict>
 	<key>OEGameCorePlayerCount</key>
 	<string>2</string>
 	<key>OEProjectURL</key>
