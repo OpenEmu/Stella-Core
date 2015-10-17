@@ -307,7 +307,6 @@ StellaGameCore *current;
 {
     free(videoBuffer);
     free(sampleBuffer);
-    [super dealloc];
 }
 
 - (GLenum)pixelFormat
