@@ -71,7 +71,6 @@ void stellaOESetPalette (const uInt32* palette)
 
 @end
 
-StellaGameCore *current;
 @implementation StellaGameCore
 
 - (id)init
@@ -82,20 +81,13 @@ StellaGameCore *current;
             free(videoBuffer);
         videoBuffer = (uint32_t*)malloc(160 * 256 * 4);
     }
-    
-	current = self;
-    
+
 	return self;
 }
 
 #pragma mark Exectuion
 
 - (void)executeFrame
-{
-    [self executeFrameSkippingFrame:NO];
-}
-
-- (void)executeFrameSkippingFrame: (BOOL) skip
 {
     tiaSamplesPerFrame = 31400.0f/console->getFramerate();
     
@@ -115,7 +107,7 @@ StellaGameCore *current;
     
     // Audio
     vcsSound->processFragment((Int16*)sampleBuffer, tiaSamplesPerFrame);
-    [[current ringBufferAtIndex:0] write:sampleBuffer maxLength:tiaSamplesPerFrame << 2];
+    [[self ringBufferAtIndex:0] write:sampleBuffer maxLength:tiaSamplesPerFrame << 2];
 }
 
 - (BOOL)loadFileAtPath:(NSString *)path error:(NSError **)error
@@ -342,31 +334,23 @@ StellaGameCore *current;
 - (NSData *)serializeStateWithError:(NSError **)outError
 {
     Serializer serializer;
-    if(stateManager.saveState(serializer))
-    {
+    if(stateManager.saveState(serializer)) {
         serializer.myStream->seekg(0, std::ios::end);
         NSUInteger length = serializer.myStream->tellg();
         serializer.myStream->seekg(0, std::ios::beg);
-        
-        char *bytes = (char *)malloc(length);
-        serializer.myStream->read(bytes, length);
-        
-        return [NSData dataWithBytesNoCopy:bytes length:length];
+
+        NSMutableData *data = [NSMutableData dataWithLength:length];
+        serializer.myStream->read((char *)data.mutableBytes, length);
+        return data;
     }
-    else
-    {
-        NSError *error = [NSError errorWithDomain:OEGameCoreErrorDomain
-                                             code:OEGameCoreCouldNotSaveStateError
-                                         userInfo:@{
-                                                    NSLocalizedDescriptionKey : @"Could not serialize save state data"
-                                                    }];
-        
-        if(outError)
-        {
-            *outError = error;
-        }
-        return nil;
+
+    if (outError) {
+        *outError = [NSError errorWithDomain:OEGameCoreErrorDomain code:OEGameCoreCouldNotSaveStateError userInfo:@{
+            NSLocalizedDescriptionKey : @"Could not serialize save state data"
+        }];
     }
+
+    return nil;
 }
 
 - (BOOL)deserializeState:(NSData *)state withError:(NSError **)outError
@@ -378,43 +362,27 @@ StellaGameCore *current;
     serializer.myStream->write(bytes, size);
     
     if(stateManager.loadState(serializer))
-    {
         return YES;
+
+    if(outError) {
+        *outError = [NSError errorWithDomain:OEGameCoreErrorDomain code:OEGameCoreCouldNotLoadStateError userInfo:@{
+            NSLocalizedDescriptionKey : @"The save state data could not be loaded"
+        }];
     }
-    else
-    {
-        NSError *error = [NSError errorWithDomain:OEGameCoreErrorDomain
-                                             code:OEGameCoreCouldNotLoadStateError
-                                         userInfo:@{
-                                                    NSLocalizedDescriptionKey : @"The save state data could not be loaded"
-                                                    }];
-        
-        if(outError)
-        {
-            *outError = error;
-        }
-        return NO;
-    }
+
+    return NO;
 }
 
-- (BOOL)saveStateToFileAtPath:(NSString *)fileName
+- (void)saveStateToFileAtPath:(NSString *)fileName completionHandler:(void (^)(BOOL, NSError *))block
 {
-    Serializer state([fileName UTF8String], 0);
-    if(!stateManager.saveState(state))
-    {
-        return NO;
-    }
-    return YES;
+    Serializer state(fileName.fileSystemRepresentation, 0);
+    block(stateManager.saveState(state), nil);
 }
 
-- (BOOL)loadStateFromFileAtPath:(NSString *)fileName
+- (void)loadStateFromFileAtPath:(NSString *)fileName completionHandler:(void (^)(BOOL, NSError *))block
 {
-    Serializer state([fileName UTF8String], 1);
-    if(!stateManager.loadState(state))
-    {
-        return NO;
-    }
-    return YES;
+    Serializer state(fileName.fileSystemRepresentation, 1);
+    block(stateManager.loadState(state), nil);
 }
 
 - (void)changeDisplayMode
