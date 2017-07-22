@@ -260,9 +260,10 @@ void stellaOESetPalette (const uInt32* palette)
 }
 
 #pragma mark Video
-- (const void *)videoBuffer
+
+- (const void *)getVideoBufferWithHint:(void *)hint
 {
-    return videoBuffer;
+    return videoBuffer = (uint32_t*)(hint ?: videoBuffer);
 }
 
 - (OEIntRect)screenRect
@@ -309,11 +310,6 @@ void stellaOESetPalette (const uInt32* palette)
 - (GLenum)pixelType
 {
     return GL_UNSIGNED_INT_8_8_8_8_REV;
-}
-
-- (GLenum)internalPixelFormat
-{
-    return GL_RGB8;
 }
 
 - (double)audioSampleRate
