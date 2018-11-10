@@ -44,29 +44,26 @@
 #include "SoundSDL.hxx"
 
 static SoundSDL *vcsSound = 0;
-static uint32_t tiaSamplesPerFrame = 0;
-Int16 *sampleBuffer[2048];
 #include "Stubs.hh"
 
 static Console *console = 0;
 static Cartridge *cartridge = 0;
+static Settings *settings = 0;
 static OSystem osystem;
 static StateManager stateManager(&osystem);
-const uint32_t* Palette;
+const uint32_t *Palette;
 
-// Set the palette for the current stella instance
-void stellaOESetPalette (const uInt32* palette)
+// Set the palette for the current Stella instance
+void stellaOESetPalette(const uInt32 *palette)
 {
     Palette = palette;
 }
 
 @interface StellaGameCore () <OE2600SystemResponderClient>
 {
-    uint32_t *videoBuffer;
-    int videoWidth, videoHeight;
-    int16_t pad[2][OE2600ButtonCount];
-    NSString *romName;
-    double sampleRate;
+    uint32_t *_videoBuffer;
+    int16_t *_sampleBuffer;
+    int _videoWidth, _videoHeight;
 }
 
 @end
@@ -77,90 +74,213 @@ void stellaOESetPalette (const uInt32* palette)
 {
     if((self = [super init]))
     {
-        if(videoBuffer)
-            free(videoBuffer);
-        videoBuffer = (uint32_t*)malloc(160 * 256 * 4);
+        _videoBuffer = (uint32_t *)malloc(160 * 256 * sizeof(uint32_t));
+        _sampleBuffer = (int16_t *)malloc(2048 * sizeof(int16_t));
     }
 
 	return self;
 }
 
-#pragma mark Exectuion
-
-- (void)executeFrame
+- (void)dealloc
 {
-    tiaSamplesPerFrame = 31400.0f/console->getFramerate();
-    
-    console->controller(Controller::Left).update();
-    console->controller(Controller::Right).update();
-    console->switches().update();
-    
-    TIA& tia = console->tia();
-    tia.update();
-    
-    // Video
-    videoWidth = tia.width();
-    videoHeight = tia.height();
-    
-    for (unsigned int i = 0; i < videoHeight * videoWidth; ++i)
-        videoBuffer[i] = Palette[tia.currentFrameBuffer()[i]];
-    
-    // Audio
-    vcsSound->processFragment((Int16*)sampleBuffer, tiaSamplesPerFrame);
-    [[self ringBufferAtIndex:0] write:sampleBuffer maxLength:tiaSamplesPerFrame << 2];
+    free(_videoBuffer);
+    free(_sampleBuffer);
+    delete console;
+    delete cartridge;
+    delete settings;
 }
+
+# pragma mark - Execution
 
 - (BOOL)loadFileAtPath:(NSString *)path error:(NSError **)error
 {
-	memset(pad, 0, sizeof(int16_t) * 10);
-    
-    const void *data;
-    size_t size;
-    romName = [path copy];
-    
-    // load cart, read bytes, get length
-    NSData* dataObj = [NSData dataWithContentsOfFile:[romName stringByStandardizingPath]];
-    if(dataObj == nil) return false;
-    size = [dataObj length];
-    data = (uint8_t*)[dataObj bytes];
-    
+    // Load ROM to memory
+    NSData *dataObj = [NSData dataWithContentsOfFile:path.stringByStandardizingPath];
+    if(dataObj == nil) return NO;
+    const void *data = dataObj.bytes;
+    NSUInteger size = dataObj.length;
+
     // Get the game properties
-    string cartMD5 = MD5((const uInt8*)data, size);
+    string cartMD5 = MD5((const uint8_t*)data, (uint32_t)size);
     Properties props;
     osystem.propSet().getMD5(cartMD5, props);
-    
+
     // Load the cart
     string cartType = props.get(Cartridge_Type);
     string cartId;//, romType("AUTO-DETECT");
-    Settings *settings = new Settings(&osystem);
+    settings = new Settings(&osystem);
     settings->setValue("romloadcount", 0);
-    cartridge = Cartridge::create((const uInt8*)data, (uInt32)size, cartMD5, cartType, cartId, osystem, *settings);
-    
+    cartridge = Cartridge::create((const uint8_t*)data, (uint32_t)size, cartMD5, cartType, cartId, osystem, *settings);
+
     if(cartridge == 0)
     {
         return NO;
     }
-    
+
     console = new Console(&osystem, cartridge, props);
     osystem.myConsole = console;
-    
+
     //tia.enableAutoFrame(false);
     console->initializeVideo();
     console->initializeAudio();
-    
+
     // Get the ROM's width and height
-    TIA& tia = console->tia();
-    videoWidth = tia.width();
-    videoHeight = tia.height();
-    
+    TIA &tia = console->tia();
+    _videoWidth = tia.width();
+    _videoHeight = tia.height();
+
     return YES;
 }
 
-- (oneway void)didPush2600Button:(OE2600Button)button forPlayer:(NSUInteger)player;
+- (void)executeFrame
+{
+    uint32_t tiaSamplesPerFrame = 31400.0f/console->getFramerate();
+
+    console->controller(Controller::Left).update();
+    console->controller(Controller::Right).update();
+    console->switches().update();
+
+    TIA &tia = console->tia();
+    tia.update();
+
+    // Video
+    _videoWidth = tia.width();
+    _videoHeight = tia.height();
+
+    for (unsigned int i = 0; i < _videoHeight * _videoWidth; ++i)
+        _videoBuffer[i] = Palette[tia.currentFrameBuffer()[i]];
+
+    // Audio
+    vcsSound->processFragment(_sampleBuffer, tiaSamplesPerFrame);
+    [[self ringBufferAtIndex:0] write:_sampleBuffer maxLength:tiaSamplesPerFrame << 2];
+}
+
+- (void)setupEmulation
+{
+}
+
+- (void)resetEmulation
+{
+    console->system().reset();
+}
+
+- (void)stopEmulation
+{
+    [super stopEmulation];
+}
+
+- (NSTimeInterval)frameInterval
+{
+    return console->getFramerate();
+}
+
+# pragma mark - Video
+
+- (const void *)getVideoBufferWithHint:(void *)hint
+{
+    return _videoBuffer = (uint32_t*)(hint ?: _videoBuffer);
+}
+
+- (OEIntRect)screenRect
+{
+    return OEIntRectMake(0, 0, _videoWidth, _videoHeight);
+}
+
+- (OEIntSize)bufferSize
+{
+    return OEIntSizeMake(160, 256);
+}
+
+- (OEIntSize)aspectSize
+{
+    return OEIntSizeMake(_videoWidth * (12.0/7.0), _videoHeight);
+}
+
+- (GLenum)pixelFormat
+{
+    return GL_BGRA;
+}
+
+- (GLenum)pixelType
+{
+    return GL_UNSIGNED_INT_8_8_8_8_REV;
+}
+
+# pragma mark - Audio
+
+- (double)audioSampleRate
+{
+    return 31400;
+}
+
+- (NSUInteger)channelCount
+{
+    return 2;
+}
+
+# pragma mark - Save States
+
+- (void)saveStateToFileAtPath:(NSString *)fileName completionHandler:(void (^)(BOOL, NSError *))block
+{
+    Serializer state(fileName.fileSystemRepresentation, 0);
+    block(stateManager.saveState(state), nil);
+}
+
+- (void)loadStateFromFileAtPath:(NSString *)fileName completionHandler:(void (^)(BOOL, NSError *))block
+{
+    Serializer state(fileName.fileSystemRepresentation, 1);
+    block(stateManager.loadState(state), nil);
+}
+
+- (NSData *)serializeStateWithError:(NSError **)outError
+{
+    Serializer serializer;
+    if(stateManager.saveState(serializer)) {
+        serializer.myStream->seekg(0, std::ios::end);
+        NSUInteger length = serializer.myStream->tellg();
+        serializer.myStream->seekg(0, std::ios::beg);
+
+        NSMutableData *data = [NSMutableData dataWithLength:length];
+        serializer.myStream->read((char *)data.mutableBytes, length);
+        return data;
+    }
+
+    if (outError) {
+        *outError = [NSError errorWithDomain:OEGameCoreErrorDomain code:OEGameCoreCouldNotSaveStateError userInfo:@{
+            NSLocalizedDescriptionKey : @"Could not serialize save state data"
+        }];
+    }
+
+    return nil;
+}
+
+- (BOOL)deserializeState:(NSData *)state withError:(NSError **)outError
+{
+    char const *bytes = (char const *)state.bytes;
+    std::streamsize size = state.length;
+
+    Serializer serializer;
+    serializer.myStream->write(bytes, size);
+
+    if(stateManager.loadState(serializer))
+        return YES;
+
+    if(outError) {
+        *outError = [NSError errorWithDomain:OEGameCoreErrorDomain code:OEGameCoreCouldNotLoadStateError userInfo:@{
+            NSLocalizedDescriptionKey : @"The save state data could not be loaded"
+        }];
+    }
+
+    return NO;
+}
+
+# pragma mark - Input
+
+- (oneway void)didPush2600Button:(OE2600Button)button forPlayer:(NSUInteger)player
 {
     Event &ev = osystem.eventHandler().event();
     int playerShift = player != 1 ? 7 : 0;
-    
+
     switch (button) {
         case OE2600ButtonUp:
             ev.set(Event::Type(Event::JoystickZeroUp + playerShift), 1);
@@ -201,17 +321,17 @@ void stellaOESetPalette (const uInt32* palette)
         case OE2600ButtonSelect:
             ev.set(Event::Type(Event::ConsoleSelect), 1);
             break;
-            
+
         default:
             break;
     }
 }
 
-- (oneway void)didRelease2600Button:(OE2600Button)button forPlayer:(NSUInteger)player;
+- (oneway void)didRelease2600Button:(OE2600Button)button forPlayer:(NSUInteger)player
 {
     Event &ev = osystem.eventHandler().event();
     int playerShift = player != 1 ? 7 : 0;
-    
+
     switch (button) {
         case OE2600ButtonUp:
             ev.set(Event::Type(Event::JoystickZeroUp + playerShift), 0);
@@ -252,133 +372,10 @@ void stellaOESetPalette (const uInt32* palette)
         case OE2600ButtonSelect:
             ev.set(Event::Type(Event::ConsoleSelect), 0);
             break;
-            
+
         default:
             break;
     }
-    
-}
-
-#pragma mark Video
-
-- (const void *)getVideoBufferWithHint:(void *)hint
-{
-    return videoBuffer = (uint32_t*)(hint ?: videoBuffer);
-}
-
-- (OEIntRect)screenRect
-{
-    return OEIntRectMake(0, 0, videoWidth, videoHeight);
-    
-}
-
-- (OEIntSize)bufferSize
-{
-    return OEIntSizeMake(160, 256);
-}
-
-- (OEIntSize)aspectSize
-{
-    return OEIntSizeMake(videoWidth * (12.0/7.0), videoHeight);
-}
-
-- (void)setupEmulation
-{
-}
-
-- (void)resetEmulation
-{
-    console->system().reset();
-}
-
-- (void)stopEmulation
-{
-    [super stopEmulation];
-}
-
-- (void)dealloc
-{
-    free(videoBuffer);
-    free(sampleBuffer);
-}
-
-- (GLenum)pixelFormat
-{
-    return GL_BGRA;
-}
-
-- (GLenum)pixelType
-{
-    return GL_UNSIGNED_INT_8_8_8_8_REV;
-}
-
-- (double)audioSampleRate
-{
-    return 31400;
-}
-
-- (NSTimeInterval)frameInterval
-{
-    return console->getFramerate();
-}
-
-- (NSUInteger)channelCount
-{
-    return 2;
-}
-
-- (NSData *)serializeStateWithError:(NSError **)outError
-{
-    Serializer serializer;
-    if(stateManager.saveState(serializer)) {
-        serializer.myStream->seekg(0, std::ios::end);
-        NSUInteger length = serializer.myStream->tellg();
-        serializer.myStream->seekg(0, std::ios::beg);
-
-        NSMutableData *data = [NSMutableData dataWithLength:length];
-        serializer.myStream->read((char *)data.mutableBytes, length);
-        return data;
-    }
-
-    if (outError) {
-        *outError = [NSError errorWithDomain:OEGameCoreErrorDomain code:OEGameCoreCouldNotSaveStateError userInfo:@{
-            NSLocalizedDescriptionKey : @"Could not serialize save state data"
-        }];
-    }
-
-    return nil;
-}
-
-- (BOOL)deserializeState:(NSData *)state withError:(NSError **)outError
-{
-    char const *bytes = (char const *)([state bytes]);
-    std::streamsize size = [state length];
-    
-    Serializer serializer;
-    serializer.myStream->write(bytes, size);
-    
-    if(stateManager.loadState(serializer))
-        return YES;
-
-    if(outError) {
-        *outError = [NSError errorWithDomain:OEGameCoreErrorDomain code:OEGameCoreCouldNotLoadStateError userInfo:@{
-            NSLocalizedDescriptionKey : @"The save state data could not be loaded"
-        }];
-    }
-
-    return NO;
-}
-
-- (void)saveStateToFileAtPath:(NSString *)fileName completionHandler:(void (^)(BOOL, NSError *))block
-{
-    Serializer state(fileName.fileSystemRepresentation, 0);
-    block(stateManager.saveState(state), nil);
-}
-
-- (void)loadStateFromFileAtPath:(NSString *)fileName completionHandler:(void (^)(BOOL, NSError *))block
-{
-    Serializer state(fileName.fileSystemRepresentation, 1);
-    block(stateManager.loadState(state), nil);
 }
 
 - (void)changeDisplayMode
