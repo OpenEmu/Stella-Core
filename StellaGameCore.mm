@@ -193,7 +193,10 @@ void stellaOESetPalette(const uInt32 *palette)
 
 - (OEIntSize)aspectSize
 {
-    return OEIntSizeMake(_videoWidth * (12.0/7.0), _videoHeight);
+    BOOL isPAL = console->getFramerate() < 59 ? YES : NO;
+    // PAL: 7375000.0 / ((283.75 * 15625.0 + 25.0) * 4.0 / 5.0)
+    double PAR = isPAL ? 2.079283 : 12.0/7.0;
+    return OEIntSizeMake(_videoWidth * PAR, _videoHeight);
 }
 
 - (GLenum)pixelFormat
