@@ -283,6 +283,62 @@ void Console::toggleFormat(int direction)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void Console::setFormat(uInt32 format)
+{
+    if(myCurrentFormat == format)
+        return;
+
+    string saveformat, message;
+
+    myCurrentFormat = format;
+    switch(myCurrentFormat)
+    {
+        case 0:  // auto-detect
+        {
+            myTIA->update();
+            myDisplayFormat = myTIA->isPAL() ? "PAL" : "NTSC";
+            message = "Auto-detect mode: " + myDisplayFormat;
+            saveformat = "AUTO";
+            break;
+        }
+        case 1:
+            saveformat = myDisplayFormat = "NTSC";
+            message = "NTSC mode";
+            break;
+        case 2:
+            saveformat = myDisplayFormat = "PAL";
+            message = "PAL mode";
+            break;
+        case 3:
+            saveformat = myDisplayFormat = "SECAM";
+            message = "SECAM mode";
+            break;
+        case 4:
+            saveformat = myDisplayFormat = "NTSC50";
+            message = "NTSC50 mode";
+            break;
+        case 5:
+            saveformat = myDisplayFormat = "PAL60";
+            message = "PAL60 mode";
+            break;
+        case 6:
+            saveformat = myDisplayFormat = "SECAM60";
+            message = "SECAM60 mode";
+            break;
+    }
+
+    myProperties.set(Display_Format, saveformat);
+
+    setPalette(myOSystem->settings().getString("palette"));
+    setTIAProperties();
+    myTIA->frameReset();
+    initializeVideo();  // takes care of refreshing the screen
+    initializeAudio(); // ensure that audio synthesis is set up to match emulation speed
+
+    myOSystem->frameBuffer().showMessage(message);
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void Console::toggleColorLoss()
 {
   bool colorloss = !myOSystem->settings().getBool("colorloss");

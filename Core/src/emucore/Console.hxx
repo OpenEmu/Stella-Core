@@ -206,6 +206,11 @@ class Console : public Serializable
     void toggleFormat(int direction = 1);
 
     /**
+      Set NTSC/PAL/SECAM (and variants) display format.
+    */
+    void setFormat(uInt32 format);
+
+    /**
       Toggle between the available palettes.
     */
     void togglePalette();

@@ -64,7 +64,10 @@ void stellaOESetPalette(const uInt32 *palette)
     uint32_t *_videoBuffer;
     int16_t *_sampleBuffer;
     int _videoWidth, _videoHeight;
+    NSMutableArray <NSMutableDictionary <NSString *, id> *> *_availableDisplayModes;
 }
+
+- (void)loadDisplayModeOptions;
 
 @end
 
@@ -128,6 +131,11 @@ void stellaOESetPalette(const uInt32 *palette)
     TIA &tia = console->tia();
     _videoWidth = tia.width();
     _videoHeight = tia.height();
+
+    // Only temporary, so core doesn't crash on an older OpenEmu version
+    if ([self respondsToSelector:@selector(displayModeInfo)]) {
+        [self loadDisplayModeOptions];
+    }
 
     return YES;
 }
@@ -381,9 +389,99 @@ void stellaOESetPalette(const uInt32 *palette)
     }
 }
 
-- (void)changeDisplayMode
+# pragma mark - Display Mode
+
+- (NSArray <NSDictionary <NSString *, id> *> *)displayModes
 {
-    console->toggleFormat();
+    if (_availableDisplayModes.count == 0)
+    {
+        _availableDisplayModes = [NSMutableArray array];
+
+        BOOL isPAL = console->getFramerate() < 59 ? YES : NO;
+
+        NSArray <NSDictionary <NSString *, id> *> *availableModesWithDefault =
+        @[
+          @{ OEGameCoreDisplayModeLabelKey : @"Format",
+             },
+          @{ OEGameCoreDisplayModeNameKey        : @"Auto",
+             OEGameCoreDisplayModePrefKeyNameKey : @"format",
+             OEGameCoreDisplayModeStateKey       : @YES
+             },
+          @{ OEGameCoreDisplayModeNameKey        : isPAL ? @"NTSC50" : @"NTSC",
+             OEGameCoreDisplayModePrefKeyNameKey : @"format",
+             OEGameCoreDisplayModeStateKey       : @NO
+             },
+          @{ OEGameCoreDisplayModeNameKey        : isPAL ? @"PAL" : @"PAL60",
+             OEGameCoreDisplayModePrefKeyNameKey : @"format",
+             OEGameCoreDisplayModeStateKey       : @NO
+             },
+          @{ OEGameCoreDisplayModeNameKey        : isPAL ? @"SECAM" : @"SECAM60",
+             OEGameCoreDisplayModePrefKeyNameKey : @"format",
+             OEGameCoreDisplayModeStateKey       : @NO,
+             },
+          ];
+
+        // Deep mutable copy
+        _availableDisplayModes = (NSMutableArray *)CFBridgingRelease(CFPropertyListCreateDeepCopy(kCFAllocatorDefault, (CFArrayRef)availableModesWithDefault, kCFPropertyListMutableContainers));
+    }
+
+    return [_availableDisplayModes copy];
+}
+
+- (void)changeDisplayWithMode:(NSString *)displayMode
+{
+    if (_availableDisplayModes.count == 0)
+        [self displayModes];
+
+    // First check if 'displayMode' is valid
+    BOOL isValidDisplayMode = NO;
+
+    for (NSDictionary *modeDict in _availableDisplayModes) {
+        if ([modeDict[OEGameCoreDisplayModeNameKey] isEqualToString:displayMode]) {
+            isValidDisplayMode = YES;
+            break;
+        }
+    }
+
+    // Disallow a 'displayMode' not found in _availableDisplayModes
+    if (!isValidDisplayMode)
+        return;
+
+    // Handle option state changes
+    for (NSMutableDictionary *optionDict in _availableDisplayModes) {
+        if (optionDict[OEGameCoreDisplayModeLabelKey])
+            continue;
+        // Mutually exclusive option state change
+        else if ([optionDict[OEGameCoreDisplayModeNameKey] isEqualToString:displayMode])
+            optionDict[OEGameCoreDisplayModeStateKey] = @YES;
+        // Reset
+        else
+            optionDict[OEGameCoreDisplayModeStateKey] = @NO;
+    }
+
+    if ([displayMode isEqualToString:@"Auto"])
+        console->setFormat(0);
+    else if ([displayMode isEqualToString:@"NTSC"])
+        console->setFormat(1);
+    else if ([displayMode isEqualToString:@"PAL"])
+        console->setFormat(2);
+    else if ([displayMode isEqualToString:@"SECAM"])
+        console->setFormat(3);
+    else if ([displayMode isEqualToString:@"NTSC50"])
+        console->setFormat(4);
+    else if ([displayMode isEqualToString:@"PAL60"])
+        console->setFormat(5);
+    else if ([displayMode isEqualToString:@"SECAM60"])
+        console->setFormat(6);
+}
+
+- (void)loadDisplayModeOptions
+{
+    // Restore format
+    NSString *lastFormat = self.displayModeInfo[@"format"];
+    if (lastFormat && ![lastFormat isEqualToString:@"Auto"]) {
+        [self changeDisplayWithMode:lastFormat];
+    }
 }
 
 @end

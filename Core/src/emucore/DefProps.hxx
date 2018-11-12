@@ -27,7 +27,7 @@
   regenerated and the application recompiled.
 */
 
-#define DEF_PROPS_SIZE 3250
+#define DEF_PROPS_SIZE 3251
 
 static const char* DefProps[DEF_PROPS_SIZE][21] = {
   { "000509d1ed2b8d30a9d94be1b3b5febb", "Greg Zumwalt", "", "Jungle Jane (2003) (Greg Zumwalt) (Hack)", "Hack of Pitfall!", "Hack", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
@@ -2694,6 +2694,7 @@ static const char* DefProps[DEF_PROPS_SIZE][21] = {
   { "d5aa7472e7f2cc17e893a1a36f8dadf0", "", "", "Overhead Adventure Demo 5 (PD)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "d5c6b81212ad86fd9542a1fedaf57cae", "", "", "Sprite Demo 1 (PD)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "d5d2d44fb73785996ccc24ae3a0f5cef", "Robby", "", "Grand Prix (Robby)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
+  { "d5e17022d1ecc20fd9b53dc464c302f1", "Activision, Carol Shaw", "EAX-020", "River Raid (1982) (Activision) (SECAM)", "", "", "", "", "", "", "", "", "", "", "", "", "SECAM", "", "", "", "" }, 
   { "d5e27051512c1e7445a9bf91501bda09", "Activision, David Crane", "AG-008", "Laser Blast (1981) (Activision) (4K)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "d5e5b3ec074fff8976017ef121d26129", "Star Game", "003", "River Raid (Star Game)", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 
   { "d5f965c159e26a1fb49a22a47fbd1dd0", "Supergame", "", "River Raid II (Supergame)", "AKA River Raid", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }, 

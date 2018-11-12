@@ -19964,6 +19964,13 @@
 "Display.Format" "SECAM"
 ""
 
+"Cartridge.MD5" "d5e17022d1ecc20fd9b53dc464c302f1"
+"Cartridge.Manufacturer" "Activision, Carol Shaw"
+"Cartridge.ModelNo" "EAX-020"
+"Cartridge.Name" "River Raid (1982) (Activision) (SECAM)"
+"Display.Format" "SECAM"
+""
+
 "Cartridge.MD5" "d9bd343533b61389b270c0787210943b"
 "Cartridge.Manufacturer" "Atari, Douglas 'Solaris' Neubauer"
 "Cartridge.ModelNo" "CX26134"
