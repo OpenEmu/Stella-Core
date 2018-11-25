@@ -53,6 +53,14 @@ static OSystem osystem;
 static StateManager stateManager(&osystem);
 const uint32_t *Palette;
 
+#define OptionDefault(_NAME_, _PREFKEY_) @{ OEGameCoreDisplayModeNameKey : _NAME_, OEGameCoreDisplayModePrefKeyNameKey : _PREFKEY_, OEGameCoreDisplayModeStateKey : @YES, }
+#define Option(_NAME_, _PREFKEY_) @{ OEGameCoreDisplayModeNameKey : _NAME_, OEGameCoreDisplayModePrefKeyNameKey : _PREFKEY_, OEGameCoreDisplayModeStateKey : @NO, }
+#define OptionIndented(_NAME_, _PREFKEY_) @{ OEGameCoreDisplayModeNameKey : _NAME_, OEGameCoreDisplayModePrefKeyNameKey : _PREFKEY_, OEGameCoreDisplayModeStateKey : @NO, OEGameCoreDisplayModeIndentationLevelKey : @(1), }
+#define OptionToggleable(_NAME_, _PREFKEY_) @{ OEGameCoreDisplayModeNameKey : _NAME_, OEGameCoreDisplayModePrefKeyNameKey : _PREFKEY_, OEGameCoreDisplayModeStateKey : @NO, OEGameCoreDisplayModeAllowsToggleKey : @YES, }
+#define OptionToggleableNoSave(_NAME_, _PREFKEY_) @{ OEGameCoreDisplayModeNameKey : _NAME_, OEGameCoreDisplayModePrefKeyNameKey : _PREFKEY_, OEGameCoreDisplayModeStateKey : @NO, OEGameCoreDisplayModeAllowsToggleKey : @YES, OEGameCoreDisplayModeDisallowPrefSaveKey : @YES, }
+#define Label(_NAME_) @{ OEGameCoreDisplayModeLabelKey : _NAME_, }
+#define SeparatorItem() @{ OEGameCoreDisplayModeSeparatorItemKey : @"",}
+
 // Set the palette for the current Stella instance
 void stellaOESetPalette(const uInt32 *palette)
 {
@@ -401,24 +409,11 @@ void stellaOESetPalette(const uInt32 *palette)
 
         NSArray <NSDictionary <NSString *, id> *> *availableModesWithDefault =
         @[
-          @{ OEGameCoreDisplayModeLabelKey : @"Format",
-             },
-          @{ OEGameCoreDisplayModeNameKey        : @"Auto",
-             OEGameCoreDisplayModePrefKeyNameKey : @"format",
-             OEGameCoreDisplayModeStateKey       : @YES
-             },
-          @{ OEGameCoreDisplayModeNameKey        : isPAL ? @"NTSC50" : @"NTSC",
-             OEGameCoreDisplayModePrefKeyNameKey : @"format",
-             OEGameCoreDisplayModeStateKey       : @NO
-             },
-          @{ OEGameCoreDisplayModeNameKey        : isPAL ? @"PAL" : @"PAL60",
-             OEGameCoreDisplayModePrefKeyNameKey : @"format",
-             OEGameCoreDisplayModeStateKey       : @NO
-             },
-          @{ OEGameCoreDisplayModeNameKey        : isPAL ? @"SECAM" : @"SECAM60",
-             OEGameCoreDisplayModePrefKeyNameKey : @"format",
-             OEGameCoreDisplayModeStateKey       : @NO,
-             },
+          Label(@"Format"),
+          OptionDefault(@"Auto", @"format"),
+          isPAL ? Option(@"NTSC50", @"format") : Option(@"NTSC", @"format"),
+          isPAL ? Option(@"PAL", @"format")    : Option(@"PAL60", @"format"),
+          isPAL ? Option(@"SECAM", @"format")  : Option(@"SECAM60", @"format"),
           ];
 
         // Deep mutable copy
@@ -449,7 +444,7 @@ void stellaOESetPalette(const uInt32 *palette)
 
     // Handle option state changes
     for (NSMutableDictionary *optionDict in _availableDisplayModes) {
-        if (optionDict[OEGameCoreDisplayModeLabelKey])
+        if (!optionDict[OEGameCoreDisplayModeNameKey])
             continue;
         // Mutually exclusive option state change
         else if ([optionDict[OEGameCoreDisplayModeNameKey] isEqualToString:displayMode])
