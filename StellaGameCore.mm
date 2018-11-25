@@ -397,6 +397,18 @@ void stellaOESetPalette(const uInt32 *palette)
     }
 }
 
+- (oneway void)mouseMovedAtPoint:(OEIntPoint)point
+{
+}
+
+- (oneway void)leftMouseDownAtPoint:(OEIntPoint)point
+{
+}
+
+- (oneway void)leftMouseUp
+{
+}
+
 # pragma mark - Display Mode
 
 - (NSArray <NSDictionary <NSString *, id> *> *)displayModes
