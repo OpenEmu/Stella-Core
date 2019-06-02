@@ -47,7 +47,6 @@ static SoundSDL *vcsSound = 0;
 #include "Stubs.hh"
 
 static Console *console = 0;
-static Cartridge *cartridge = 0;
 static Settings *settings = 0;
 static OSystem osystem;
 static StateManager stateManager(&osystem);
@@ -70,6 +69,7 @@ void stellaOESetPalette(const uInt32 *palette)
 @interface StellaGameCore () <OE2600SystemResponderClient>
 {
     uint32_t *_videoBuffer;
+    uint32_t *_activeVideoBuffer;
     int16_t *_sampleBuffer;
     int _videoWidth, _videoHeight;
     NSMutableArray <NSMutableDictionary <NSString *, id> *> *_availableDisplayModes;
@@ -86,6 +86,7 @@ void stellaOESetPalette(const uInt32 *palette)
     if((self = [super init]))
     {
         _videoBuffer = (uint32_t *)malloc(160 * 256 * sizeof(uint32_t));
+        _activeVideoBuffer = _videoBuffer;
         _sampleBuffer = (int16_t *)malloc(2048 * sizeof(int16_t));
     }
 
@@ -95,10 +96,19 @@ void stellaOESetPalette(const uInt32 *palette)
 - (void)dealloc
 {
     free(_videoBuffer);
+    _videoBuffer = nil;
     free(_sampleBuffer);
-    delete console;
-    delete cartridge;
-    delete settings;
+    _sampleBuffer = nil;
+    
+    if (console) {
+        delete console;
+        console = nullptr;
+    }
+    
+    if (settings) {
+        delete settings;
+        settings = nullptr;
+    }
 }
 
 # pragma mark - Execution
@@ -121,7 +131,7 @@ void stellaOESetPalette(const uInt32 *palette)
     string cartId;//, romType("AUTO-DETECT");
     settings = new Settings(&osystem);
     settings->setValue("romloadcount", 0);
-    cartridge = Cartridge::create((const uint8_t*)data, (uint32_t)size, cartMD5, cartType, cartId, osystem, *settings);
+    Cartridge *cartridge = Cartridge::create((const uint8_t*)data, (uint32_t)size, cartMD5, cartType, cartId, osystem, *settings);
 
     if(cartridge == 0)
     {
@@ -164,7 +174,7 @@ void stellaOESetPalette(const uInt32 *palette)
     _videoHeight = tia.height();
 
     for (unsigned int i = 0; i < _videoHeight * _videoWidth; ++i)
-        _videoBuffer[i] = Palette[tia.currentFrameBuffer()[i]];
+        _activeVideoBuffer[i] = Palette[tia.currentFrameBuffer()[i]];
 
     // Audio
     vcsSound->processFragment(_sampleBuffer, tiaSamplesPerFrame);
@@ -194,7 +204,7 @@ void stellaOESetPalette(const uInt32 *palette)
 
 - (const void *)getVideoBufferWithHint:(void *)hint
 {
-    return _videoBuffer = (uint32_t*)(hint ?: _videoBuffer);
+    return _activeVideoBuffer = (uint32_t*)(hint ?: _videoBuffer);
 }
 
 - (OEIntRect)screenRect
