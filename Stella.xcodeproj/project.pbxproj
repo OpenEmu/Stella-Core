@@ -150,7 +150,7 @@
 		8D5B49B6048680CD000E48DA /* Stella.oecoreplugin */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = Stella.oecoreplugin; sourceTree = BUILT_PRODUCTS_DIR; };
 		8D5B49B7048680CD000E48DA /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		941DFB2615B6425200C6552F /* StellaGameCore.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = StellaGameCore.mm; sourceTree = "<group>"; };
-		941DFB4E15B7CEC200C6552F /* OE2600SystemResponderClient.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = OE2600SystemResponderClient.h; path = "../OpenEmu/Atari 2600/OE2600SystemResponderClient.h"; sourceTree = "<group>"; };
+		941DFB4E15B7CEC200C6552F /* OE2600SystemResponderClient.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = OE2600SystemResponderClient.h; path = "../OpenEmu/SystemPlugins/Atari 2600/OE2600SystemResponderClient.h"; sourceTree = "<group>"; };
 		946C18A11713D32F00C64BF9 /* OpenEmuBase.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = OpenEmuBase.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		94F0AD6718AB07AA00505C0A /* AtariVox.cxx */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AtariVox.cxx; sourceTree = "<group>"; };
 		94F0AD6818AB07AA00505C0A /* AtariVox.hxx */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = AtariVox.hxx; sourceTree = "<group>"; };
